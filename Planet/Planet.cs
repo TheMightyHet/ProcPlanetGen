@@ -43,14 +43,14 @@ public class Planet : MonoBehaviour
     void Initialize()
     {
         distanceLOD = new float[] {
-        Mathf.Infinity,
-        planetRadius * 3f,
-        planetRadius * 1.2f,
-        planetRadius * .5f,
-        planetRadius * .21f,
-        planetRadius * .1f,
-        planetRadius * .04f
-    };
+            Mathf.Infinity,
+            planetRadius * 3f,
+            planetRadius * 1.2f,
+            planetRadius * .5f,
+            planetRadius * .21f,
+            planetRadius * .1f,
+            planetRadius * .04f
+        };
 
 
         if (meshFilters == null || meshFilters.Length == 0)
@@ -88,6 +88,20 @@ public class Planet : MonoBehaviour
         {
             face.CreateChunkMesh();
         }
+        var asd = "";
+        Vector3[] vertexes = ChunkTemplate.templateVertices[8];
+        foreach (Vector3 x in vertexes)
+        {
+            asd += x.ToString() + ", ";
+        }
+        Debug.Log(asd);
+        asd = "";
+        int[] tris = ChunkTemplate.templateTriangles[8];
+        foreach (var x in tris)
+        {
+            asd += x + ", ";
+        }
+        Debug.Log(asd);
     }
     void UpdateMesh()
     {

@@ -333,12 +333,17 @@ public class Chunk
             vertices[i] = pointPosOnSphere * planetScript.planetRadius; // + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
             normals[i] = pointPosOnSphere;
 
-            if (sideWays == 0 || sideWays == 1)
+            if (sideWays == 0) // || sideWays == 1)
                 DrawSimpleBorderTopAnd(borderVertices, i, y);
-            else if (sideWays == 2 || sideWays == 3)
-            {
+            else 
+            if (sideWays == 1)
+                DrawSimpleBorderLeft(borderVertices, i, y);
+            else 
+            if (sideWays == 2) // || sideWays == 3)
                 DrawSimpleBorderBotAnd(borderVertices, i, y);
-            }
+            else
+            if (sideWays == 3)
+                DrawSimpleBorderRight(borderVertices, i, y);
         }
         borderOffset += chunkBaseResolution + 1;
     }
@@ -353,6 +358,39 @@ public class Chunk
             triangles[triangleOffset + 2] = i + 1 + planetFace.offset;
 
             triangles[triangleOffset + 3] = borderVertices[y - 1] + planetFace.offset;
+            triangles[triangleOffset + 4] = i + 1 + planetFace.offset;
+            triangles[triangleOffset + 5] = borderVertices[y] + planetFace.offset;
+
+            triangleOffset += 6;
+        }
+        if (y == 0)
+        {
+            triangles[triangleOffset] = borderVertices[0] + planetFace.offset;
+            triangles[triangleOffset + 1] = i + planetFace.offset;
+            triangles[triangleOffset + 2] = i + 1 + planetFace.offset;
+
+            triangleOffset += 3;
+        }
+        if (y == chunkBaseResolution - 1)
+        {
+            triangles[triangleOffset] = borderVertices[^1] + planetFace.offset;
+            triangles[triangleOffset + 1] = i + planetFace.offset;
+            triangles[triangleOffset + 2] = i + 1 + planetFace.offset;
+
+            triangleOffset += 3;
+        }
+    }
+
+    public void DrawSimpleBorderLeft(List<int> borderVertices, int i, int y)
+    {
+
+        if (y > 0 && y < chunkBaseResolution - 1)
+        {
+            triangles[triangleOffset] = i + planetFace.offset;
+            triangles[triangleOffset + 1] = borderVertices[y] + planetFace.offset;
+            triangles[triangleOffset + 2] = borderVertices[y - 1] + planetFace.offset;
+
+            triangles[triangleOffset + 3] = i + planetFace.offset;
             triangles[triangleOffset + 4] = i + 1 + planetFace.offset;
             triangles[triangleOffset + 5] = borderVertices[y] + planetFace.offset;
 
@@ -402,6 +440,39 @@ public class Chunk
         if (y == chunkBaseResolution - 1)
         {
             triangles[triangleOffset] = i + planetFace.offset; 
+            triangles[triangleOffset + 1] = borderVertices[^1] + planetFace.offset;
+            triangles[triangleOffset + 2] = i + 1 + planetFace.offset;
+
+            triangleOffset += 3;
+        }
+    }
+
+    public void DrawSimpleBorderRight(List<int> borderVertices, int i, int y)
+    {
+
+        if (y > 0 && y < chunkBaseResolution - 1)
+        {
+            triangles[triangleOffset] = i + planetFace.offset;
+            triangles[triangleOffset + 1] = borderVertices[y - 1] + planetFace.offset;
+            triangles[triangleOffset + 2] = i + 1 + planetFace.offset;
+
+            triangles[triangleOffset + 3] = borderVertices[y - 1] + planetFace.offset;
+            triangles[triangleOffset + 4] = borderVertices[y] + planetFace.offset;
+            triangles[triangleOffset + 5] = i + 1 + planetFace.offset;
+
+            triangleOffset += 6;
+        }
+        if (y == 0)
+        {
+            triangles[triangleOffset] = i + planetFace.offset;
+            triangles[triangleOffset + 1] = borderVertices[0] + planetFace.offset;
+            triangles[triangleOffset + 2] = i + 1 + planetFace.offset;
+
+            triangleOffset += 3;
+        }
+        if (y == chunkBaseResolution - 1)
+        {
+            triangles[triangleOffset] = i + planetFace.offset;
             triangles[triangleOffset + 1] = borderVertices[^1] + planetFace.offset;
             triangles[triangleOffset + 2] = i + 1 + planetFace.offset;
 
