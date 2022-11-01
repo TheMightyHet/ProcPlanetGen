@@ -438,44 +438,160 @@ public class Chunk
     public void CheckNeighbourChunkLODsSmaller()
     {
         //Top, Left, Bot, Right
-        switch (corner)
+        switch (path[^1]) // (corner)
         {
-            case Corners.topLeft:
+            case '0': // Corners.topLeft:
                 {
-                    neighbours[0] = borderPosition != BorderPositions.topLeftCorner && borderPosition != BorderPositions.topRightCorner && borderPosition != BorderPositions.topMidBorder ? CheckIfNeighbourLODSmaller(0) : 0; // Top - 0 if on faceBorder
-                    neighbours[1] = borderPosition != BorderPositions.topLeftCorner && borderPosition != BorderPositions.botLeftCorner && borderPosition != BorderPositions.leftMidBorder ? CheckIfNeighbourLODSmaller(1) : 0; // Left - 0 if on faceBorder
+                    neighbours[0] = CheckIfNeighbourLODSmallerPathV(0); // Top  //borderPosition != BorderPositions.topLeftCorner && borderPosition != BorderPositions.topRightCorner && borderPosition != BorderPositions.topMidBorder ? CheckIfNeighbourLODSmaller(0) : 0; // <- 0 if on faceBorder
+                    neighbours[1] = CheckIfNeighbourLODSmallerPathV(1); // Left //borderPosition != BorderPositions.topLeftCorner && borderPosition != BorderPositions.botLeftCorner && borderPosition != BorderPositions.leftMidBorder ? CheckIfNeighbourLODSmaller(1) : 0; // <- 0 if on faceBorder
                     neighbours[2] = 0; // Bot
                     neighbours[3] = 0; // Right
                     break;
                 }
-            case Corners.topRight:
+            case '1': // Corners.topRight:
                 {
-                    neighbours[0] = borderPosition != BorderPositions.topLeftCorner && borderPosition != BorderPositions.topRightCorner && borderPosition != BorderPositions.topMidBorder ? CheckIfNeighbourLODSmaller(0) : 0; // Top - 0 if on faceBorder
+                    neighbours[0] = CheckIfNeighbourLODSmallerPathV(0); // Top //borderPosition != BorderPositions.topLeftCorner && borderPosition != BorderPositions.topRightCorner && borderPosition != BorderPositions.topMidBorder ? CheckIfNeighbourLODSmaller(0) : 0; // <- 0 if on faceBorder
                     neighbours[1] = 0; // Left
                     neighbours[2] = 0; // Bot
-                    neighbours[3] = borderPosition != BorderPositions.topRightCorner && borderPosition != BorderPositions.botRightCorner && borderPosition != BorderPositions.rightMidBorder ? CheckIfNeighbourLODSmaller(3) : 0; // Bot - 0 if on faceBorder
+                    neighbours[3] = CheckIfNeighbourLODSmallerPathV(3); // Right //borderPosition != BorderPositions.topRightCorner && borderPosition != BorderPositions.botRightCorner && borderPosition != BorderPositions.rightMidBorder ? CheckIfNeighbourLODSmaller(3) : 0; // <- 0 if on faceBorder
                     break;
                 }
-            case Corners.botLeft:
+            case '2': // Corners.botLeft:
                 {
                     neighbours[0] = 0; // Top
-                    neighbours[1] = borderPosition != BorderPositions.topLeftCorner && borderPosition != BorderPositions.botLeftCorner && borderPosition != BorderPositions.leftMidBorder ? CheckIfNeighbourLODSmaller(1) : 0; // Left - 0 if on faceBorder
-                    neighbours[2] = borderPosition != BorderPositions.botLeftCorner && borderPosition != BorderPositions.botRightCorner && borderPosition != BorderPositions.botMidBorder ? CheckIfNeighbourLODSmaller(2) : 0; // Bot - 0 if faceBorder
+                    neighbours[1] = CheckIfNeighbourLODSmallerPathV(1); // Left //borderPosition != BorderPositions.topLeftCorner && borderPosition != BorderPositions.botLeftCorner && borderPosition != BorderPositions.leftMidBorder ? CheckIfNeighbourLODSmaller(1) : 0; // <- 0 if on faceBorder
+                    neighbours[2] = CheckIfNeighbourLODSmallerPathV(2); // Bot  //borderPosition != BorderPositions.botLeftCorner && borderPosition != BorderPositions.botRightCorner && borderPosition != BorderPositions.botMidBorder ? CheckIfNeighbourLODSmaller(2) : 0; // <- 0 if faceBorder
                     neighbours[3] = 0; // Right
                     break;
                 }
-            case Corners.botRight:
+            case '3': // Corners.botRight:
                 {
                     neighbours[0] = 0; // Top
                     neighbours[1] = 0; // Left
-                    neighbours[2] = borderPosition != BorderPositions.botLeftCorner && borderPosition != BorderPositions.botRightCorner && borderPosition != BorderPositions.botMidBorder ? CheckIfNeighbourLODSmaller(2) : 0; // Bot - 0 if faceBorder
-                    neighbours[3] = borderPosition != BorderPositions.topRightCorner && borderPosition != BorderPositions.botRightCorner && borderPosition != BorderPositions.rightMidBorder ? CheckIfNeighbourLODSmaller(3) : 0; // Bot - 0 if on faceBorder
+                    neighbours[2] = CheckIfNeighbourLODSmallerPathV(2); // Bot //borderPosition != BorderPositions.botLeftCorner && borderPosition != BorderPositions.botRightCorner && borderPosition != BorderPositions.botMidBorder ? CheckIfNeighbourLODSmaller(2) : 0; // <- 0 if faceBorder
+                    neighbours[3] = CheckIfNeighbourLODSmallerPathV(3); // Right //borderPosition != BorderPositions.topRightCorner && borderPosition != BorderPositions.botRightCorner && borderPosition != BorderPositions.rightMidBorder ? CheckIfNeighbourLODSmaller(3) : 0; // <- 0 if on faceBorder
 
                     break;
                 }
             default: break;
         }
     }
+
+    public int CheckIfNeighbourLODSmallerPathV(int dir)
+    {
+        string neighbourPath = InvertedPathPathV(dir);
+        if (neighbourPath == "") return 0;
+        Chunk neighbour = planetFace.baseChunk;
+
+        while(neighbourPath.Length > 0)
+        {
+            if (neighbour.subChunks.Length > 0)
+            {
+                if (neighbourPath[0] == '0') neighbour = neighbour.subChunks[0];
+                else if (neighbourPath[0] == '1') neighbour = neighbour.subChunks[1];
+                else if (neighbourPath[0] == '2') neighbour = neighbour.subChunks[2];
+                else if (neighbourPath[0] == '3') neighbour = neighbour.subChunks[3];
+                neighbourPath = neighbourPath.Remove(0, 1);
+            }
+            else
+                break;
+        }
+
+        if (neighbour.chunkLODLevel < chunkLODLevel) return 1;
+        return 0;
+    }
+
+    public string InvertedPathPathV(int dir)
+    {
+        string chunkPath = path;
+        chunkPath = chunkPath.Remove(0, 1); // Remove baseChunk
+        string neighbourPath = "";
+
+        while (chunkPath.Length > 0)
+        {
+            if (!HasSiblingTowardsPathV(dir, chunkPath[^1]))
+            {
+                neighbourPath = neighbourPath.Insert(0, InvertDirectionPathV(dir, chunkPath[^1]));
+                chunkPath = chunkPath.Remove(chunkPath.Length - 1);
+                if (chunkPath.Length == 0) return "";
+            }
+            else if (HasSiblingTowardsPathV(dir, chunkPath[^1]))
+            {
+                neighbourPath = neighbourPath.Insert(0, InvertDirectionPathV(dir, chunkPath[^1]));
+                chunkPath = chunkPath.Remove(chunkPath.Length - 1);
+                break;
+            }
+        }
+        neighbourPath = neighbourPath.Insert(0, chunkPath);
+        return neighbourPath;
+    }
+
+    public string InvertDirectionPathV(int dir, char pathPart)
+    {
+        if ((dir % 2) == 1)
+        {
+            if (pathPart == '0') return "1"; // topLeft  -> topRight
+            else
+            if (pathPart == '1') return "0"; // topRight -> topLeft
+            else
+            if (pathPart == '2') return "3"; // botLeft  -> botRight
+            else
+            if (pathPart == '3') return "2"; // botRight -> botLeft
+        }
+        else
+        if ((dir % 2) == 0)
+        {
+            if (pathPart == '0') return "2"; // topLeft -> botLeft
+            else
+            if (pathPart == '1') return "3"; // topRight -> botRight
+            else
+            if (pathPart == '2') return "0"; // botLeft -> topLeft
+            else
+            if (pathPart == '3') return "1"; // botRight -> topRight
+        }
+        return "";
+    }
+
+    public bool HasSiblingTowardsPathV(int dir, char pathPart)
+    {
+        if (dir == 0)
+        {
+            if (pathPart == '2' || pathPart == '3') // BotSide
+                return true;
+            else if (pathPart == '1' || pathPart == '4') // TopSide
+                return false;
+        }
+        else if (dir == 1)
+        {
+            if (pathPart == '1' || pathPart == '3') // RightSide
+                return true;
+            else if (pathPart == '0' || pathPart == '2') // LeftSide
+                return false;
+        }
+        else if (dir == 2)
+        {
+            if (pathPart == '0' || pathPart == '1') // TopSide
+                return true;
+            else if (pathPart == '2' || pathPart == '3') // BotSide
+                return false;
+        }
+        else if (dir == 3)
+        {
+            if (pathPart == '0' || pathPart == '2') // LeftSide
+                return true;
+            else if (pathPart == '1' || pathPart == '3') // RightSide
+                return false;
+        }
+
+        return false;
+    }
+
+
+
+
+
+
+    //Not used - only to show at consultation
 
     public int CheckIfNeighbourLODSmaller(int dir)
     {
@@ -487,9 +603,9 @@ public class Chunk
         {
             if (neighbour.subChunks.Length > 0)
             {
-                if      (neighbourPath[0] == Corners.topLeft)  neighbour = neighbour.subChunks[0];
+                if (neighbourPath[0] == Corners.topLeft) neighbour = neighbour.subChunks[0];
                 else if (neighbourPath[0] == Corners.topRight) neighbour = neighbour.subChunks[1];
-                else if (neighbourPath[0] == Corners.botLeft)  neighbour = neighbour.subChunks[2];
+                else if (neighbourPath[0] == Corners.botLeft) neighbour = neighbour.subChunks[2];
                 else if (neighbourPath[0] == Corners.botRight) neighbour = neighbour.subChunks[3];
                 neighbourPath.RemoveAt(0);
             }
@@ -499,12 +615,11 @@ public class Chunk
         if (neighbour.chunkLODLevel < chunkLODLevel) return 1;
         return 0;
     }
-
     public List<Corners> InvertedPath(int dir, List<Corners> cornerPath)
     {
         List<Corners> tmpCornerPath = cornerPath;
         Corners tmpCorner;
-        
+
         if (corner != Corners.middle) // Stops at baseChunk
             if (HasSiblingTowards(dir))
             {
@@ -525,7 +640,6 @@ public class Chunk
 
         return tmpCornerPath; // Return path with inversions
     }
-
     public Corners InvertDirection(int dir, Corners corner)
     {
 
@@ -546,14 +660,13 @@ public class Chunk
         }
         return corner;
     }
-
     public bool HasSiblingTowards(int dir) // True if has sibling towards a direction (Top = 0, Left = 1, Bot = 2, Right = 3)
     {
         if (dir == 0) // TopSide
         {
             if (corner == Corners.botLeft || corner == Corners.botRight) // BotSides
                 return true;
-            else if ( corner == Corners.topLeft || corner == Corners.topRight) // TopSides
+            else if (corner == Corners.topLeft || corner == Corners.topRight) // TopSides
                 return false;
         }
         else if (dir == 1) // LeftSide
