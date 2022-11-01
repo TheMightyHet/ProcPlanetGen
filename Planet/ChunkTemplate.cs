@@ -26,7 +26,12 @@ public class ChunkTemplate : MonoBehaviour
     public static Vector3[][] templateVertices = new Vector3[9][];
     public static int[][] templateTriangles = new int[9][];
 
-    private void Awake()
+    /*private void Awake()
+    {
+        GenerateChunkTemplates();
+    }*/
+
+    private void Start()
     {
         GenerateChunkTemplates();
     }
@@ -76,10 +81,10 @@ public class ChunkTemplate : MonoBehaviour
 
         GenerateMiddle();
 
-        GenerateTopEdgeFan();
         GenerateBot();
         GenerateLeft();
         GenerateRight();
+        GenerateTopEdgeFan();
 
         templateVertices[1] = vertices;
         templateTriangles[1] = triangles;
@@ -94,10 +99,10 @@ public class ChunkTemplate : MonoBehaviour
 
         GenerateMiddle();
 
-        GenerateBotEdgeFan();
         GenerateTop();
         GenerateLeft();
         GenerateRight();
+        GenerateBotEdgeFan();
 
         templateVertices[2] = vertices;
         templateTriangles[2] = triangles;
@@ -112,10 +117,10 @@ public class ChunkTemplate : MonoBehaviour
 
         GenerateMiddle();
         
-        GenerateLeftEdgeFan();
         GenerateTop();
         GenerateBot();
         GenerateRight();
+        GenerateLeftEdgeFan();
 
         templateVertices[3] = vertices;
         templateTriangles[3] = triangles;
@@ -130,10 +135,10 @@ public class ChunkTemplate : MonoBehaviour
 
         GenerateMiddle();
 
-        GenerateRightEdgeFan();
         GenerateTop();
         GenerateBot();
         GenerateLeft();
+        GenerateRightEdgeFan();
 
         templateVertices[4] = vertices;
         templateTriangles[4] = triangles;
@@ -148,10 +153,10 @@ public class ChunkTemplate : MonoBehaviour
 
         GenerateMiddle();
 
-        GenerateTopEdgeFan();
-        GenerateLeftEdgeFan();
         GenerateBot();
         GenerateRight();
+        GenerateTopEdgeFan();
+        GenerateLeftEdgeFan();
 
         templateVertices[5] = vertices;
         templateTriangles[5] = triangles;
@@ -166,10 +171,10 @@ public class ChunkTemplate : MonoBehaviour
 
         GenerateMiddle();
 
-        GenerateTopEdgeFan();
-        GenerateRightEdgeFan();
-        GenerateBot();
+        //GenerateBot();
         GenerateLeft();
+        //GenerateTopEdgeFan();
+        //GenerateRightEdgeFan();
 
         templateVertices[6] = vertices;
         templateTriangles[6] = triangles;
@@ -184,10 +189,10 @@ public class ChunkTemplate : MonoBehaviour
 
         GenerateMiddle();
 
-        GenerateBotEdgeFan();
-        GenerateLeftEdgeFan();
         GenerateTop();
         GenerateRight();
+        GenerateBotEdgeFan();
+        GenerateLeftEdgeFan();
 
         templateVertices[7] = vertices;
         templateTriangles[7] = triangles;
@@ -202,10 +207,10 @@ public class ChunkTemplate : MonoBehaviour
 
         GenerateMiddle();
 
-        GenerateBotEdgeFan();
-        GenerateRightEdgeFan();
         GenerateTop();
         GenerateLeft();
+        GenerateBotEdgeFan();
+        GenerateRightEdgeFan();
 
         templateVertices[8] = vertices;
         templateTriangles[8] = triangles;
@@ -428,7 +433,7 @@ public class ChunkTemplate : MonoBehaviour
                 triangleOffset += 6;
             }
         }
-        borderOffset += chunkResolution / 2 + 1;
+        borderOffset += (chunkResolution / 2 + 1);
     }
 
     public void GenerateBotEdgeFan()
@@ -461,7 +466,7 @@ public class ChunkTemplate : MonoBehaviour
                 triangleOffset += 6;
             }
         }
-        borderOffset += chunkResolution / 2 + 1;
+        borderOffset += (chunkResolution / 2 + 1);
     }
 
     public void GenerateLeftEdgeFan()
@@ -476,25 +481,25 @@ public class ChunkTemplate : MonoBehaviour
             {
                 triangles[triangleOffset] = i;
                 triangles[triangleOffset + 1] = i + 1;
-                triangles[triangleOffset + 2] = leftVertices[y * 2];
+                triangles[triangleOffset + 2] = rightVertices[y * 2];
 
                 triangleOffset += 3;
             }
 
             if (y > 0 && y < chunkResolution / 2)
             {
-                triangles[triangleOffset] = leftVertices[y * 2 - 2];
+                triangles[triangleOffset] = rightVertices[y * 2 - 2];
                 triangles[triangleOffset + 1] = i;
-                triangles[triangleOffset + 2] = leftVertices[y * 2 - 1];
+                triangles[triangleOffset + 2] = rightVertices[y * 2 - 1];
 
-                triangles[triangleOffset + 3] = leftVertices[y * 2 - 1];
+                triangles[triangleOffset + 3] = rightVertices[y * 2 - 1];
                 triangles[triangleOffset + 4] = i;
-                triangles[triangleOffset + 5] = leftVertices[y * 2];
+                triangles[triangleOffset + 5] = rightVertices[y * 2];
 
                 triangleOffset += 6;
             }
         }
-        borderOffset += chunkResolution / 2 + 1;
+        borderOffset += (chunkResolution / 2 + 1);
     }
 
     public void GenerateRightEdgeFan()
@@ -527,7 +532,7 @@ public class ChunkTemplate : MonoBehaviour
                 triangleOffset += 6;
             }
         }
-        borderOffset += chunkResolution / 2 + 1;
+        borderOffset += (chunkResolution / 2 + 1);
     }
 }
 

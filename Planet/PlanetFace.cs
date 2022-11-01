@@ -55,18 +55,8 @@ public class PlanetFace
             vertices.AddRange(chunkData.Item1);
             normals.AddRange(chunkData.Item2);
             triangles.AddRange(chunkData.Item3);
-            offset += chunkData.Item1.Length;
 
-            /*if (chunkPart.path == "011" && dir == "Forward")
-            {
-                var asd = "";
-                foreach (var x in chunkPart.InvertedPath(3, new List<Corners>()))
-                    asd += x + ", ";
-                Debug.Log(asd);
-                Debug.Log("0" + chunkPart.InvertedPathPathV(3));
-                Debug.Log("CheckIfNeighbourLODSmaller - " + chunkPart.CheckIfNeighbourLODSmaller(3));
-                Debug.Log("CheckIfNeighbourLODSmallerPathV - " + chunkPart.CheckIfNeighbourLODSmallerPathV(3));
-            }*/
+            offset += chunkData.Item1.Length;
         }
         
         offset = 0;
@@ -98,17 +88,6 @@ public class PlanetFace
                 chunkData = chunkPart.GetSubChunkData();
             else
                 chunkData = (chunkPart.vertices, chunkPart.normals, chunkPart.GetTriangles());
-
-            /*if (chunkPart.path == "011" && dir == "Forward")
-            {
-                var asd = "";
-                foreach (var x in chunkPart.InvertedPath(3, new List<Corners>()))
-                    asd += x + ", ";
-                Debug.Log(asd);
-                Debug.Log("0" + chunkPart.InvertedPathPathV(3));
-                Debug.Log("CheckIfNeighbourLODSmaller - " + chunkPart.CheckIfNeighbourLODSmaller(3));
-                Debug.Log("CheckIfNeighbourLODSmallerPathV - " + chunkPart.CheckIfNeighbourLODSmallerPathV(3));
-            }*/
 
             vertices.AddRange(chunkData.Item1);
             normals.AddRange(chunkData.Item2);

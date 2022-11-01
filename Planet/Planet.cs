@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Planet : MonoBehaviour
 {
-    public int planetRadius = 1000;
+    public readonly int planetRadius = 1000;
 
     [SerializeField,HideInInspector] 
     MeshFilter[] meshFilters;
@@ -61,7 +61,8 @@ public class Planet : MonoBehaviour
         planetFaces = new PlanetFace[6];
 
         Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.up, Vector3.down, Vector3.right, Vector3.left};
-        string[] directionNames = { "Forward", "Back", "Up", "Down", "Left", "Right" };
+
+        string[] directionNames = { "Forward", "Back", "Up", "Down", "Right", "Left" };
 
         for (int i = 0; i < 6; i++)
         {
@@ -88,20 +89,6 @@ public class Planet : MonoBehaviour
         {
             face.CreateChunkMesh();
         }
-        var asd = "";
-        Vector3[] vertexes = ChunkTemplate.templateVertices[8];
-        foreach (Vector3 x in vertexes)
-        {
-            asd += x.ToString() + ", ";
-        }
-        Debug.Log(asd);
-        asd = "";
-        int[] tris = ChunkTemplate.templateTriangles[8];
-        foreach (var x in tris)
-        {
-            asd += x + ", ";
-        }
-        Debug.Log(asd);
     }
     void UpdateMesh()
     {

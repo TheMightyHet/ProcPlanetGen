@@ -1,9 +1,11 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UIElements;
 using UnityEngine.WSA;
 using static PlanetFace;
 
@@ -84,75 +86,6 @@ public class Chunk
         }
     }
 
-    public void GetChunkBorderPosition()
-    {
-        switch (borderPosition)
-        {
-            case BorderPositions.root:
-                {
-                    topLeftBordPos = BorderPositions.topLeftCorner;
-                    topRightBordPos = BorderPositions.topRightCorner;
-                    botLeftBordPos = BorderPositions.botLeftCorner;
-                    botRightBordPos = BorderPositions.botRightCorner;
-                    break;
-                }
-            case BorderPositions.topLeftCorner:
-                {
-                    topLeftBordPos = BorderPositions.topLeftCorner;
-                    topRightBordPos = BorderPositions.topMidBorder;
-                    botLeftBordPos = BorderPositions.leftMidBorder;
-                    break;
-                }
-            case BorderPositions.topRightCorner:
-                {
-                    topLeftBordPos = BorderPositions.topMidBorder;
-                    topRightBordPos = BorderPositions.topRightCorner;
-                    botRightBordPos = BorderPositions.rightMidBorder;
-                    break;
-                }
-            case BorderPositions.botLeftCorner:
-                {
-                    topLeftBordPos = BorderPositions.leftMidBorder;
-                    botLeftBordPos = BorderPositions.botLeftCorner;
-                    botRightBordPos = BorderPositions.botMidBorder;
-                    break;
-                }
-            case BorderPositions.botRightCorner:
-                {
-                    topRightBordPos = BorderPositions.rightMidBorder;
-                    botLeftBordPos = BorderPositions.botMidBorder;
-                    botRightBordPos = BorderPositions.botRightCorner;
-                    break;
-                }
-            case BorderPositions.topMidBorder:
-                {
-                    topLeftBordPos = BorderPositions.topMidBorder;
-                    topRightBordPos = BorderPositions.topMidBorder;
-                    break;
-                }
-            case BorderPositions.leftMidBorder:
-                {
-                    topLeftBordPos = BorderPositions.leftMidBorder;
-                    botLeftBordPos = BorderPositions.leftMidBorder;
-                    break;
-                }
-            case BorderPositions.rightMidBorder:
-                {
-                    topRightBordPos = BorderPositions.rightMidBorder;
-                    botRightBordPos = BorderPositions.rightMidBorder;
-                    break;
-                }
-            case BorderPositions.botMidBorder:
-                {
-                    botLeftBordPos = BorderPositions.botMidBorder;
-                    botRightBordPos = BorderPositions.botMidBorder;
-                    break;
-                }
-            default:
-                break;
-        }
-    }
-
     public void UpdateChunk()
     {
         if (chunkLODLevel <= planetScript.distanceLOD.Length - 1)
@@ -182,6 +115,47 @@ public class Chunk
 
     internal (Vector3[], Vector3[], int[]) GetSubChunkData()
     {
+        //if (planetFace.dir == "Right")
+        //{
+
+        /*Vector3 rotationMatrixAttrib = new Vector3(0, 0, 0);
+        if (planetFace.dir == "Forward") rotationMatrixAttrib = new Vector3(0, 0, 180);
+        else if (planetFace.dir == "Back") rotationMatrixAttrib = new Vector3(0, 180, 0);
+        else if (planetFace.dir == "Right") rotationMatrixAttrib = new Vector3(0, 90, 270);
+        else if (planetFace.dir == "Left") rotationMatrixAttrib = new Vector3(0, 270, 270);
+        else if (planetFace.dir == "Up") rotationMatrixAttrib = new Vector3(270, 0, 90);
+        else if (planetFace.dir == "Down") rotationMatrixAttrib = new Vector3(90, 0, 270);
+        Vector3 scaleMatrixAttrib = new Vector3(chunkRadius, chunkRadius, 1);
+
+        Matrix4x4 transformMatrix = Matrix4x4.TRS(chunkPosition, Quaternion.Euler(rotationMatrixAttrib), scaleMatrixAttrib);
+
+        int templateIndex = 0;
+        CheckNeighbourChunkLODsSmaller();
+        if (neighbours[0] == 0 && neighbours[1] == 0 && neighbours[2] == 0 && neighbours[3] == 0) templateIndex = 0;
+
+        else if (neighbours[0] == 1 && neighbours[1] == 0 && neighbours[2] == 0 && neighbours[3] == 0) templateIndex = 1;
+        else if (neighbours[0] == 0 && neighbours[1] == 0 && neighbours[2] == 1 && neighbours[3] == 0) templateIndex = 2;
+        else if (neighbours[0] == 0 && neighbours[1] == 1 && neighbours[2] == 0 && neighbours[3] == 0) templateIndex = 3;
+        else if (neighbours[0] == 0 && neighbours[1] == 0 && neighbours[2] == 0 && neighbours[3] == 1) templateIndex = 4;
+
+        else if (neighbours[0] == 1 && neighbours[1] == 1 && neighbours[2] == 0 && neighbours[3] == 0) templateIndex = 5;
+        else if (neighbours[0] == 1 && neighbours[1] == 0 && neighbours[2] == 0 && neighbours[3] == 1) templateIndex = 6;
+        else if (neighbours[0] == 0 && neighbours[1] == 1 && neighbours[2] == 1 && neighbours[3] == 0) templateIndex = 7;
+        else if (neighbours[0] == 0 && neighbours[1] == 0 && neighbours[2] == 1 && neighbours[3] == 1) templateIndex = 8;
+
+        vertices = new Vector3[ChunkTemplate.templateVertices[templateIndex].Length];
+        normals = new Vector3[vertices.Length];
+
+        for (int i = 0; i < vertices.Length; ++i)
+        {
+            Vector3 pointPosOnCube = transformMatrix.MultiplyPoint(ChunkTemplate.templateVertices[0][i]);
+            Vector3 pointPosOnSphere = pointPosOnCube.normalized;
+            vertices[i] = pointPosOnSphere * planetScript.planetRadius;
+            normals[i] = pointPosOnSphere;
+        }
+        triangles = ChunkTemplate.templateTriangles[templateIndex];*/
+
+
         triangleOffset = 0;
         borderOffset = 0;
 
@@ -208,9 +182,11 @@ public class Chunk
         if (neighbours[0] == 1) CalculateChunkBorderEdgeFan(topVertices, chunkBaseResolution, 0); else CalculateChunkBorder(topVertices, chunkBaseResolution, 0);
         if (neighbours[1] == 1) CalculateChunkBorderEdgeFan(leftVertices, 0, 1); else CalculateChunkBorder(leftVertices, 0, 1);
         if (neighbours[2] == 1) CalculateChunkBorderEdgeFan(botVertices, 0, 2); else CalculateChunkBorder(botVertices, 0, 2);
-        if (neighbours[3] == 1) CalculateChunkBorderEdgeFan(rightVertices, chunkBaseResolution, 3); else CalculateChunkBorder(rightVertices, chunkBaseResolution, 3); 
+        if (neighbours[3] == 1) CalculateChunkBorderEdgeFan(rightVertices, chunkBaseResolution, 3); else CalculateChunkBorder(rightVertices, chunkBaseResolution, 3);
 
-        return (vertices, normals, triangles);
+
+
+        return (vertices, normals, triangles); //GetTriangles());
     }
 
     public void CalculateChunkMiddle()
@@ -482,12 +458,12 @@ public class Chunk
 
     internal int[] GetTriangles()
     {
-        int[] triangles = new int[this.triangles.Length];
+        int[] returnTriangles = new int[triangles.Length];
 
-        for (int i = 0; i < triangles.Length; ++i)
-            triangles[i] = this.triangles[i] + planetFace.offset;
+        for (int i = 0; i < returnTriangles.Length; ++i)
+            returnTriangles[i] = triangles[i] + planetFace.offset;
 
-        return triangles;
+        return returnTriangles;
     }
 
     public void GetSubChunks()
@@ -501,7 +477,7 @@ public class Chunk
         }
         else
         {
-            if (Vector3.Angle(chunkPosition, planetScript.playerObj.position) < 50)
+            if (Vector3.Angle(chunkPosition, planetScript.playerObj.position) < 70)
                 planetFace.displayedChunk.Add(this);
         }
     }
@@ -663,6 +639,75 @@ public class Chunk
 
 
     //Not used - only to show at consultation
+
+    public void GetChunkBorderPosition()
+    {
+        switch (borderPosition)
+        {
+            case BorderPositions.root:
+                {
+                    topLeftBordPos = BorderPositions.topLeftCorner;
+                    topRightBordPos = BorderPositions.topRightCorner;
+                    botLeftBordPos = BorderPositions.botLeftCorner;
+                    botRightBordPos = BorderPositions.botRightCorner;
+                    break;
+                }
+            case BorderPositions.topLeftCorner:
+                {
+                    topLeftBordPos = BorderPositions.topLeftCorner;
+                    topRightBordPos = BorderPositions.topMidBorder;
+                    botLeftBordPos = BorderPositions.leftMidBorder;
+                    break;
+                }
+            case BorderPositions.topRightCorner:
+                {
+                    topLeftBordPos = BorderPositions.topMidBorder;
+                    topRightBordPos = BorderPositions.topRightCorner;
+                    botRightBordPos = BorderPositions.rightMidBorder;
+                    break;
+                }
+            case BorderPositions.botLeftCorner:
+                {
+                    topLeftBordPos = BorderPositions.leftMidBorder;
+                    botLeftBordPos = BorderPositions.botLeftCorner;
+                    botRightBordPos = BorderPositions.botMidBorder;
+                    break;
+                }
+            case BorderPositions.botRightCorner:
+                {
+                    topRightBordPos = BorderPositions.rightMidBorder;
+                    botLeftBordPos = BorderPositions.botMidBorder;
+                    botRightBordPos = BorderPositions.botRightCorner;
+                    break;
+                }
+            case BorderPositions.topMidBorder:
+                {
+                    topLeftBordPos = BorderPositions.topMidBorder;
+                    topRightBordPos = BorderPositions.topMidBorder;
+                    break;
+                }
+            case BorderPositions.leftMidBorder:
+                {
+                    topLeftBordPos = BorderPositions.leftMidBorder;
+                    botLeftBordPos = BorderPositions.leftMidBorder;
+                    break;
+                }
+            case BorderPositions.rightMidBorder:
+                {
+                    topRightBordPos = BorderPositions.rightMidBorder;
+                    botRightBordPos = BorderPositions.rightMidBorder;
+                    break;
+                }
+            case BorderPositions.botMidBorder:
+                {
+                    botLeftBordPos = BorderPositions.botMidBorder;
+                    botRightBordPos = BorderPositions.botMidBorder;
+                    break;
+                }
+            default:
+                break;
+        }
+    }
 
     public int CheckIfNeighbourLODSmaller(int dir)
     {
