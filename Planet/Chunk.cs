@@ -228,7 +228,8 @@ public class Chunk
                 Vector3 pointPosOnCube = chunkPosition + ((percent.x - .5f) * 2 * planetFace.axisA + (percent.y - .5f) * 2 * planetFace.axisB) * chunkRadius;
 
                 Vector3 pointPosOnSphere = pointPosOnCube.normalized;
-                vertices[i] = pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
+                float elevation = planetScript.noiseFilter.Evaluate(pointPosOnSphere);
+                vertices[i] = pointPosOnSphere * (1 + elevation) * planetScript.planetRadius; //pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
                 normals[i] = pointPosOnSphere;
 
                 if (x != chunkBaseResolution - 2 && y != chunkBaseResolution - 2)
@@ -258,7 +259,8 @@ public class Chunk
             Vector3 pointPosOnCube = chunkPosition + ((percent.x - .5f) * 2 * planetFace.axisA + (percent.y - .5f) * 2 * planetFace.axisB) * chunkRadius;
 
             Vector3 pointPosOnSphere = pointPosOnCube.normalized;
-            vertices[i] = pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
+            float elevation = planetScript.noiseFilter.Evaluate(pointPosOnSphere);
+            vertices[i] = pointPosOnSphere * (1 + elevation) * planetScript.planetRadius; //pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
             normals[i] = pointPosOnSphere;
 
             if (sideWays == 0 || sideWays == 1)
@@ -333,7 +335,8 @@ public class Chunk
             Vector3 pointPosOnCube = chunkPosition + ((percent.x - .5f) * 2 * planetFace.axisA + (percent.y - .5f) * 2 * planetFace.axisB) * chunkRadius;
 
             Vector3 pointPosOnSphere = pointPosOnCube.normalized;
-            vertices[i] = pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
+            float elevation = planetScript.noiseFilter.Evaluate(pointPosOnSphere);
+            vertices[i] = pointPosOnSphere * (1 + elevation) * planetScript.planetRadius; //pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
             normals[i] = pointPosOnSphere;
 
             if (sideWays == 0) // || sideWays == 1)

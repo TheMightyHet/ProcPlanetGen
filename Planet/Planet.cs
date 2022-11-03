@@ -13,6 +13,8 @@ public class Planet : MonoBehaviour
     public Transform playerObj;
     [HideInInspector] public float playerDistance;
 
+    public NoiseFilter noiseFilter = new NoiseFilter();
+
     public float[] distanceLOD; 
 
     private void Awake()
@@ -74,7 +76,7 @@ public class Planet : MonoBehaviour
                 };
                 meshObj.transform.parent = transform;
                 meshObj.AddComponent<MeshRenderer>().sharedMaterial = new Material(Shader.Find("Standard"));
-                meshObj.GetComponent<MeshRenderer>().sharedMaterial.color = Color.cyan;
+                meshObj.GetComponent<MeshRenderer>().sharedMaterial.color = Color.red;
 
                 meshFilters[i] = meshObj.AddComponent<MeshFilter>();
                 meshFilters[i].sharedMesh = new Mesh();

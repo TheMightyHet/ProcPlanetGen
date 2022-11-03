@@ -120,10 +120,10 @@ public class PlanetFace
 
         mesh.Clear();
         mesh.vertices = vertices.ToArray();
-        //mesh.normals = normals.ToArray();
+        mesh.normals = normals.ToArray();
         mesh.triangles = triangles.ToArray();
         mesh.colors = colors.ToArray();
-        mesh.uv = uvs;
-        mesh.RecalculateNormals();
+        //mesh.uv = uvs;
+        //mesh.RecalculateNormals();
     }
 }
