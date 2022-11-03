@@ -1,12 +1,7 @@
-using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UIElements;
-using UnityEngine.WSA;
 using static PlanetFace;
 
 public class Chunk
@@ -33,6 +28,8 @@ public class Chunk
     public Vector3[] vertices;
     public int[] triangles;
     public Vector3[] normals;
+    public Color[] colors;
+
     public int triangleOffset = 0;
     public int borderOffset = 0;
 
@@ -113,7 +110,7 @@ public class Chunk
         }
     }
 
-    internal (Vector3[], Vector3[], int[]) GetSubChunkData()
+    internal (Vector3[], Vector3[], int[], Color[]) GetSubChunkData()
     {
         //if (planetFace.dir == "Right")
         //{
@@ -176,6 +173,7 @@ public class Chunk
         vertices = new Vector3[(chunkBaseResolution - 1) * (chunkBaseResolution - 1) + topVerticesCount + botVerticesCount + leftVerticesCount + righttVerticesCount];
         triangles = new int[(chunkBaseResolution - 2) * (chunkBaseResolution - 2) * 6 + topTrianglesCount + botTrianglesCount + leftTrianglesCount + rightTrianglesCount];
         normals = new Vector3[vertices.Length];
+        colors = new Color[vertices.Length];
 
         CalculateChunkMiddle();
 
@@ -185,8 +183,37 @@ public class Chunk
         if (neighbours[3] == 1) CalculateChunkBorderEdgeFan(rightVertices, chunkBaseResolution, 3); else CalculateChunkBorder(rightVertices, chunkBaseResolution, 3);
 
 
+        for (int i = 0; i < vertices.Length; ++i)
+            colors[i] = Color.Lerp(Color.red, Color.green, UnityEngine.Random.value);//noiseFilter.Evaluate(vertices[i].normalized * planetScript.planetRadius));
 
-        return (vertices, normals, triangles); //GetTriangles());
+
+        /*int triangleCount = triangles.Length / 3;
+
+        Debug.Log(triangleCount + ", " + vertices.Length + ", " + triangles.Length);
+
+        int vertexIndexA;
+        int vertexIndexB;
+        int vertexIndexC;
+
+        Vector3 triangleNormal;
+
+        for (int i = 0; i < triangleCount; i++)
+        {
+            int normalTriangleIndex = i * 3;
+            vertexIndexA = triangles[normalTriangleIndex];
+            vertexIndexB = triangles[normalTriangleIndex + 1];
+            vertexIndexC = triangles[normalTriangleIndex + 2];
+
+            triangleNormal = GetSurfaceNormal(vertexIndexA, vertexIndexB, vertexIndexC);
+            
+            normals[vertexIndexA] += triangleNormal;
+            normals[vertexIndexB] += triangleNormal;
+            normals[vertexIndexC] += triangleNormal;
+        }*/
+
+
+
+        return (vertices, normals, triangles, colors); //GetTriangles());
     }
 
     public void CalculateChunkMiddle()
@@ -201,7 +228,7 @@ public class Chunk
                 Vector3 pointPosOnCube = chunkPosition + ((percent.x - .5f) * 2 * planetFace.axisA + (percent.y - .5f) * 2 * planetFace.axisB) * chunkRadius;
 
                 Vector3 pointPosOnSphere = pointPosOnCube.normalized;
-                vertices[i] = pointPosOnSphere * planetScript.planetRadius; // + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
+                vertices[i] = pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
                 normals[i] = pointPosOnSphere;
 
                 if (x != chunkBaseResolution - 2 && y != chunkBaseResolution - 2)
@@ -231,7 +258,7 @@ public class Chunk
             Vector3 pointPosOnCube = chunkPosition + ((percent.x - .5f) * 2 * planetFace.axisA + (percent.y - .5f) * 2 * planetFace.axisB) * chunkRadius;
 
             Vector3 pointPosOnSphere = pointPosOnCube.normalized;
-            vertices[i] = pointPosOnSphere * planetScript.planetRadius; // + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
+            vertices[i] = pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
             normals[i] = pointPosOnSphere;
 
             if (sideWays == 0 || sideWays == 1)
@@ -306,7 +333,7 @@ public class Chunk
             Vector3 pointPosOnCube = chunkPosition + ((percent.x - .5f) * 2 * planetFace.axisA + (percent.y - .5f) * 2 * planetFace.axisB) * chunkRadius;
 
             Vector3 pointPosOnSphere = pointPosOnCube.normalized;
-            vertices[i] = pointPosOnSphere * planetScript.planetRadius; // + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
+            vertices[i] = pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
             normals[i] = pointPosOnSphere;
 
             if (sideWays == 0) // || sideWays == 1)
@@ -464,6 +491,18 @@ public class Chunk
             returnTriangles[i] = triangles[i] + planetFace.offset;
 
         return returnTriangles;
+    }
+
+    public Vector3 GetSurfaceNormal(int a, int b, int c)
+    {
+        Vector3 pA = vertices[a];
+        Vector3 pB = vertices[b];
+        Vector3 pC = vertices[c];
+        
+        Vector3 sideAB = pB - pA;
+        Vector3 sideAC = pC - pB;
+
+        return Vector3.Cross(sideAB, sideAC).normalized;
     }
 
     public void GetSubChunks()

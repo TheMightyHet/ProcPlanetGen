@@ -8,7 +8,7 @@ public class NoiseFilter
     Noise noise = new Noise();
 
     public float strength = 1;
-    [Range(1, 8)] public int octaves = 1;
+    public int octaves = 5;
     public float baseRoughness = 1;
     public float roughness = 2;
     public float persistance = .5f;

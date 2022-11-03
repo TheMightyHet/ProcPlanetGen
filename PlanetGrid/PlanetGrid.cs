@@ -2,13 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Planet : MonoBehaviour
+public class PlanetGrid : MonoBehaviour
 {
     public readonly int planetRadius = 1000;
 
     [SerializeField,HideInInspector] 
     MeshFilter[] meshFilters;
-    PlanetFace[] planetFaces;
+    PlanetFaceGrid[] planetFaces;
 
     public Transform playerObj;
     [HideInInspector] public float playerDistance;
@@ -58,7 +58,7 @@ public class Planet : MonoBehaviour
             meshFilters = new MeshFilter[6];
         }
 
-        planetFaces = new PlanetFace[6];
+        planetFaces = new PlanetFaceGrid[6];
 
         Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.up, Vector3.down, Vector3.right, Vector3.left};
 
@@ -80,22 +80,22 @@ public class Planet : MonoBehaviour
                 meshFilters[i].sharedMesh = new Mesh();
             }
 
-            planetFaces[i] = new PlanetFace(meshFilters[i].sharedMesh, directions[i], this, directionNames[i]);
+            planetFaces[i] = new PlanetFaceGrid(meshFilters[i].sharedMesh, directions[i], this, directionNames[i]);
         }
     }
 
     void GenerateMesh()
     {
-        foreach (PlanetFace face in planetFaces)
+        foreach (PlanetFaceGrid face in planetFaces)
         {
-            face.CreateChunkMesh();
+            //face.CreateChunkMesh();
         }
     }
     void UpdateMesh()
     {
-        foreach (PlanetFace face in planetFaces)
+        foreach (PlanetFaceGrid face in planetFaces)
         {
-            face.CreateChunkMesh();
+            //face.CreateChunkMesh();
         }
     }
 }

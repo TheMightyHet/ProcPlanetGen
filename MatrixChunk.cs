@@ -17,7 +17,7 @@ public class MatrixChunk
         }
     }
 
-    /*public ChunkData[][] subChunks;
+    public ChunkData[][] subChunks;
     public int gridDimensions = 0;
 
     //public Planet planetScript;
@@ -146,5 +146,5 @@ public class MatrixChunk
                     visibleChunks.Add(chunk);
                 }
             }
-    }*/
+    }
 }
