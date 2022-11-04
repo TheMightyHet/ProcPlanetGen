@@ -7,10 +7,10 @@ public class NoiseFilter
 {
     Noise noise = new Noise();
 
-    public float strength = .05f;
-    public int octaves = 10;
-    public float baseRoughness = 1.5f;
-    public float roughness = 3;
+    public float strength = .1f;
+    public int octaves = 5;
+    public float baseRoughness = 1;
+    public float roughness = 2.5f;
     public float persistance = .45f;
     public Vector3 center;
 
