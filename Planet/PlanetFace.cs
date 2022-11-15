@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class PlanetFace
@@ -61,14 +62,42 @@ public class PlanetFace
 
             offset += chunkData.Item1.Length;
         }
+
+
+        Vector3[] verts = vertices.ToArray();
+        int[] tris = triangles.ToArray();
+        
+        List<Vector3> newVerts = new List<Vector3>();
+
+        foreach (Vector3 vert in verts)
+        {
+            foreach (Vector3 newVert in newVerts)
+                if (vert.Equals(newVert))
+                    goto skipToNext;
+
+            newVerts.Add(vert);
+
+        skipToNext:;
+        }
+
+        for (int i = 0; i < tris.Length; ++i)
+        {
+            for (int j = 0; j < newVerts.Count; ++j)
+            {
+                if (newVerts[j].Equals(verts[tris[i]]))
+                {
+                    tris[i] = j;
+                    break;
+                }
+            }
+        }
+
         
         offset = 0;
 
         mesh.Clear();
-        mesh.vertices = vertices.ToArray();
-        //mesh.normals = normals.ToArray();
-        mesh.triangles = triangles.ToArray();
-        mesh.colors = colors.ToArray();
+        mesh.vertices = newVerts.ToArray();
+        mesh.triangles = tris;
         mesh.RecalculateNormals();
     }
 
@@ -93,7 +122,7 @@ public class PlanetFace
             else if (chunkPart.vertices.Length == 0)
                 chunkData = chunkPart.GetSubChunkData();
             else
-                chunkData = (chunkPart.vertices, chunkPart.normals, chunkPart.GetTriangles(), chunkPart.colors);
+                chunkData = (chunkPart.vertices, chunkPart.normals, chunkPart.triangles, chunkPart.colors);
 
             vertices.AddRange(chunkData.Item1);
             normals.AddRange(chunkData.Item2);
@@ -101,29 +130,42 @@ public class PlanetFace
             colors.AddRange(chunkData.Item4);
             offset += chunkData.Item1.Length;
         }
-        
-        offset = 0;
 
-        Vector2[] uvs = new Vector2[vertices.Count];
 
-        float planetScriptSizeDivide = (1 / planetScript.planetRadius);
-        float twoPiDivide = (1 / (2 * Mathf.PI));
+        Vector3[] verts = vertices.ToArray();
+        int[] tris = triangles.ToArray();
 
-        for (int i = 0; i < uvs.Length; i++)
+        List<Vector3> newVerts = new List<Vector3>();
+
+        foreach (Vector3 vert in verts)
         {
-            Vector3 d = vertices[i] * planetScriptSizeDivide;
-            float u = 0.5f + Mathf.Atan2(d.z, d.x) * twoPiDivide;
-            float v = 0.5f - Mathf.Asin(d.y) / Mathf.PI;
+            foreach (Vector3 newVert in newVerts)
+                if (vert.Equals(newVert))
+                    goto skipToNext;
 
-            uvs[i] = new Vector2(u, v);
+            newVerts.Add(vert);
+
+        skipToNext:;
         }
 
+        for (int i = 0; i < tris.Length; ++i)
+        {
+            for (int j = 0; j < newVerts.Count; ++j)
+            {
+                if (newVerts[j].Equals(verts[tris[i]]))
+                {
+                    tris[i] = j;
+                    break;
+                }
+            }
+        }
+
+
+        offset = 0;
+
         mesh.Clear();
-        mesh.vertices = vertices.ToArray();
-        mesh.normals = normals.ToArray();
-        mesh.triangles = triangles.ToArray();
-        mesh.colors = colors.ToArray();
-        //mesh.uv = uvs;
-        //mesh.RecalculateNormals();
+        mesh.vertices = newVerts.ToArray();
+        mesh.triangles = tris;
+        mesh.RecalculateNormals();
     }
 }

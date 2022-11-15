@@ -29,7 +29,7 @@ public class Planet : MonoBehaviour
     }
 
     float elapsedTime;
-    readonly float timeLimit = 0.1f;
+    readonly float timeLimit = 5f;
     private void Update()
     {
         playerDistance = Vector3.Distance(transform.position, playerObj.transform.position); 
@@ -97,6 +97,7 @@ public class Planet : MonoBehaviour
     {
         foreach (PlanetFace face in planetFaces)
         {
+            //face.UpdateChunkMesh();
             face.CreateChunkMesh();
         }
     }

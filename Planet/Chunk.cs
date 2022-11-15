@@ -204,11 +204,23 @@ public class Chunk
             vertexIndexB = triangles[normalTriangleIndex + 1];
             vertexIndexC = triangles[normalTriangleIndex + 2];
 
-            triangleNormal = GetSurfaceNormal(vertexIndexA, vertexIndexB, vertexIndexC);
-            
+            Vector3 pA = vertices[vertexIndexA];
+            Vector3 pB = vertices[vertexIndexB];
+            Vector3 pC = vertices[vertexIndexC];
+
+            Vector3 sideAB = pB - pA;
+            Vector3 sideAC = pC - pB;
+
+            triangleNormal = Vector3.Cross(sideAB, sideAC).normalized;
+
             normals[vertexIndexA] += triangleNormal;
             normals[vertexIndexB] += triangleNormal;
             normals[vertexIndexC] += triangleNormal;
+        }
+
+        for (int i = 0; i < vertices.Length; ++i)
+        {
+            
         }*/
 
 
@@ -230,7 +242,19 @@ public class Chunk
                 Vector3 pointPosOnSphere = pointPosOnCube.normalized;
                 float elevation = planetScript.noiseFilter.Evaluate(pointPosOnSphere);
                 vertices[i] = pointPosOnSphere * (1 + elevation) * planetScript.planetRadius; //pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
-                normals[i] = pointPosOnSphere;
+
+                /*//Normal calculation - probably slow, maybe upgrade to compute shader later
+
+                Vector3 nX2 = (pointPosOnCube + 2 * planetFace.axisA).normalized;
+                Vector3 nY2 = (pointPosOnCube + 2 * planetFace.axisB).normalized;
+
+                Vector3 nX2S = nX2 * (1 + planetScript.noiseFilter.Evaluate(nX2)) * planetScript.planetRadius;
+                Vector3 nY2S = nY2 * (1 + planetScript.noiseFilter.Evaluate(nY2)) * planetScript.planetRadius;
+
+                Vector3 nXD = nX2 - vertices[i];
+                Vector3 nYD = nY2 - vertices[i];
+
+                normals[i] = Vector3.Cross(nXD, nYD).normalized;*/
 
                 if (x != chunkBaseResolution - 2 && y != chunkBaseResolution - 2)
                 {
@@ -261,7 +285,19 @@ public class Chunk
             Vector3 pointPosOnSphere = pointPosOnCube.normalized;
             float elevation = planetScript.noiseFilter.Evaluate(pointPosOnSphere);
             vertices[i] = pointPosOnSphere * (1 + elevation) * planetScript.planetRadius; //pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
-            normals[i] = pointPosOnSphere;
+
+            //Normal calculation - probably slow, maybe upgrade to compute shader later
+
+            /*Vector3 nX2 = (pointPosOnCube + 2 * planetFace.axisA).normalized;
+            Vector3 nY2 = (pointPosOnCube + 2 * planetFace.axisB).normalized;
+
+            Vector3 nX2S = nX2 * (1 + planetScript.noiseFilter.Evaluate(nX2)) * planetScript.planetRadius;
+            Vector3 nY2S = nY2 * (1 + planetScript.noiseFilter.Evaluate(nY2)) * planetScript.planetRadius;
+
+            Vector3 nXD = nX2 - vertices[i];
+            Vector3 nYD = nY2 - vertices[i];
+
+            normals[i] = Vector3.Cross(nXD, nYD).normalized;*/
 
             if (sideWays == 0 || sideWays == 1)
                 DrawEdgeFanTopAnd(borderVertices, i, y);
@@ -337,7 +373,19 @@ public class Chunk
             Vector3 pointPosOnSphere = pointPosOnCube.normalized;
             float elevation = planetScript.noiseFilter.Evaluate(pointPosOnSphere);
             vertices[i] = pointPosOnSphere * (1 + elevation) * planetScript.planetRadius; //pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
-            normals[i] = pointPosOnSphere;
+
+            //Normal calculation - probably slow, maybe upgrade to compute shader later
+
+            /*Vector3 nX2 = (pointPosOnCube + 2 * planetFace.axisA).normalized;
+            Vector3 nY2 = (pointPosOnCube + 2 * planetFace.axisB).normalized;
+
+            Vector3 nX2S = nX2 * (1 + planetScript.noiseFilter.Evaluate(nX2)) * planetScript.planetRadius;
+            Vector3 nY2S = nY2 * (1 + planetScript.noiseFilter.Evaluate(nY2)) * planetScript.planetRadius;
+
+            Vector3 nXD = nX2 - vertices[i];
+            Vector3 nYD = nY2 - vertices[i];
+
+            normals[i] = Vector3.Cross(nXD, nYD).normalized;*/
 
             if (sideWays == 0) // || sideWays == 1)
                 DrawSimpleBorderTopAnd(borderVertices, i, y);
