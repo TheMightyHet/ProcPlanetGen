@@ -58,7 +58,7 @@ public class PlanetFace
 
         foreach (Chunk chunkPart in displayedChunk)
         {
-            (Vector3[], Vector3[], int[], Color[]) chunkData = chunkPart.GetSubChunkData();
+            (Vector3[], Vector3[], List<int>, Color[]) chunkData = chunkPart.GetSubChunkData();
             vertices.AddRange(chunkData.Item1);
             normals.AddRange(chunkData.Item2);
             triangles.AddRange(chunkData.Item3);
@@ -66,31 +66,6 @@ public class PlanetFace
 
             offset += chunkData.Item1.Length;
         }
-
-        if (dir == "Forward")
-        {
-            List<Vector3> notInHashTableVertices = new List<Vector3>();
-
-            foreach (var vert in vertices)
-            {
-                if (!verticeSN.ContainsKey(vert))
-                {
-                    notInHashTableVertices.Add(vert);
-                }
-            }
-
-
-            Debug.Log(notInHashTableVertices.Count + ", " + verticeSN.Count);
-
-            var asd = "HashTable: ";
-
-            foreach (DictionaryEntry htEntry in verticeSN)
-            {
-                asd += "(" + htEntry.Key + ": " + htEntry.Value + "), ";
-            }
-            Debug.Log(asd);
-        }
-
         
         offset = 0;
 
@@ -116,7 +91,7 @@ public class PlanetFace
 
         foreach (Chunk chunkPart in displayedChunk)
         {
-            (Vector3[], Vector3[], int[], Color[]) chunkData;
+            (Vector3[], Vector3[], List<int>, Color[]) chunkData;
 
             if (chunkPart.vertices == null)
                 chunkData = chunkPart.GetSubChunkData();
