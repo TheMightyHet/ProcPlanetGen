@@ -63,8 +63,6 @@ public class Chunk
             {
                 subChunks = new Chunk[4];
 
-                GetChunkBorderPosition();
-
                 Vector3 topLeft  = chunkPosition + (.5f * chunkRadius * planetFace.axisA) - (.5f * chunkRadius * planetFace.axisB);
                 Vector3 topRight = chunkPosition + (.5f * chunkRadius * planetFace.axisA) + (.5f * chunkRadius * planetFace.axisB);
                 Vector3 botLeft  = chunkPosition - (.5f * chunkRadius * planetFace.axisA) - (.5f * chunkRadius * planetFace.axisB);
@@ -176,11 +174,12 @@ public class Chunk
         colors = new Color[vertices.Length];
 
         CalculateChunkMiddle();
+        if (neighbours[0] == 1) CalculateChunkBorderEdgeFan(topVertices, chunkBaseResolution, 0);
 
-        if (neighbours[0] == 1) CalculateChunkBorderEdgeFan(topVertices, chunkBaseResolution, 0); else CalculateChunkBorder(topVertices, chunkBaseResolution, 0);
+        /*if (neighbours[0] == 1) CalculateChunkBorderEdgeFan(topVertices, chunkBaseResolution, 0); else CalculateChunkBorder(topVertices, chunkBaseResolution, 0);
         if (neighbours[1] == 1) CalculateChunkBorderEdgeFan(leftVertices, 0, 1); else CalculateChunkBorder(leftVertices, 0, 1);
         if (neighbours[2] == 1) CalculateChunkBorderEdgeFan(botVertices, 0, 2); else CalculateChunkBorder(botVertices, 0, 2);
-        if (neighbours[3] == 1) CalculateChunkBorderEdgeFan(rightVertices, chunkBaseResolution, 3); else CalculateChunkBorder(rightVertices, chunkBaseResolution, 3);
+        if (neighbours[3] == 1) CalculateChunkBorderEdgeFan(rightVertices, chunkBaseResolution, 3); else CalculateChunkBorder(rightVertices, chunkBaseResolution, 3);*/
 
 
         for (int i = 0; i < vertices.Length; ++i)
@@ -230,6 +229,7 @@ public class Chunk
 
     public void CalculateChunkMiddle()
     {
+        Vector2 shiftOne = new Vector2(1, 1) / chunkBaseResolution;
 
         for (int y = 0; y < chunkBaseResolution - 1; y++)
         {
@@ -240,31 +240,27 @@ public class Chunk
                 Vector3 pointPosOnCube = chunkPosition + ((percent.x - .5f) * 2 * planetFace.axisA + (percent.y - .5f) * 2 * planetFace.axisB) * chunkRadius;
 
                 Vector3 pointPosOnSphere = pointPosOnCube.normalized;
-                float elevation = planetScript.noiseFilter.Evaluate(pointPosOnSphere);
-                vertices[i] = pointPosOnSphere * (1 + elevation) * planetScript.planetRadius; //pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
 
-                /*//Normal calculation - probably slow, maybe upgrade to compute shader later
-
-                Vector3 nX2 = (pointPosOnCube + 2 * planetFace.axisA).normalized;
-                Vector3 nY2 = (pointPosOnCube + 2 * planetFace.axisB).normalized;
-
-                Vector3 nX2S = nX2 * (1 + planetScript.noiseFilter.Evaluate(nX2)) * planetScript.planetRadius;
-                Vector3 nY2S = nY2 * (1 + planetScript.noiseFilter.Evaluate(nY2)) * planetScript.planetRadius;
-
-                Vector3 nXD = nX2 - vertices[i];
-                Vector3 nYD = nY2 - vertices[i];
-
-                normals[i] = Vector3.Cross(nXD, nYD).normalized;*/
+                CheckVertexInHashTable(pointPosOnSphere);
+                vertices[i] = pointPosOnSphere; 
 
                 if (x != chunkBaseResolution - 2 && y != chunkBaseResolution - 2)
                 {
-                    triangles[triangleOffset] = i + planetFace.offset;
-                    triangles[triangleOffset + 1] = i + (chunkBaseResolution - 1) + 1 + planetFace.offset;
-                    triangles[triangleOffset + 2] = i + (chunkBaseResolution - 1) + planetFace.offset;
+                    Vector3 vertA = (pointPosOnCube + ((shiftOne.x * 2 * planetFace.axisA) + (0 * 2 * planetFace.axisB)) * chunkRadius).normalized;
+                    Vector3 vertB = (pointPosOnCube + ((shiftOne.x * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
+                    Vector3 vertC = (pointPosOnCube + ((0 * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
 
-                    triangles[triangleOffset + 3] = i + planetFace.offset;
-                    triangles[triangleOffset + 4] = i + 1 + planetFace.offset;
-                    triangles[triangleOffset + 5] = i + (chunkBaseResolution - 1) + 1 + planetFace.offset;
+                    CheckVertexInHashTable(vertA);
+                    CheckVertexInHashTable(vertB);
+                    CheckVertexInHashTable(vertC);
+
+                    triangles[triangleOffset] = (int)planetFace.verticeSN[pointPosOnSphere];
+                    triangles[triangleOffset + 1] = (int)planetFace.verticeSN[vertA];
+                    triangles[triangleOffset + 2] = (int)planetFace.verticeSN[vertB];
+
+                    triangles[triangleOffset + 3] = (int)planetFace.verticeSN[pointPosOnSphere];
+                    triangles[triangleOffset + 4] = (int)planetFace.verticeSN[vertB];
+                    triangles[triangleOffset + 5] = (int)planetFace.verticeSN[vertC];
 
                     triangleOffset += 6;
                 }
@@ -279,37 +275,36 @@ public class Chunk
         {
             int i = (chunkBaseResolution - 1) * (chunkBaseResolution - 1) + y + borderOffset;
             Vector2 percent = sideWays % 2 == 0 ? new Vector2(border, y * 2) / chunkBaseResolution : new Vector2(y * 2, border) / chunkBaseResolution;
-
             Vector3 pointPosOnCube = chunkPosition + ((percent.x - .5f) * 2 * planetFace.axisA + (percent.y - .5f) * 2 * planetFace.axisB) * chunkRadius;
-
             Vector3 pointPosOnSphere = pointPosOnCube.normalized;
-            float elevation = planetScript.noiseFilter.Evaluate(pointPosOnSphere);
-            vertices[i] = pointPosOnSphere * (1 + elevation) * planetScript.planetRadius; //pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
 
-            //Normal calculation - probably slow, maybe upgrade to compute shader later
+            CheckVertexInHashTable(pointPosOnSphere);
+            vertices[i] = pointPosOnSphere;
 
-            /*Vector3 nX2 = (pointPosOnCube + 2 * planetFace.axisA).normalized;
-            Vector3 nY2 = (pointPosOnCube + 2 * planetFace.axisB).normalized;
-
-            Vector3 nX2S = nX2 * (1 + planetScript.noiseFilter.Evaluate(nX2)) * planetScript.planetRadius;
-            Vector3 nY2S = nY2 * (1 + planetScript.noiseFilter.Evaluate(nY2)) * planetScript.planetRadius;
-
-            Vector3 nXD = nX2 - vertices[i];
-            Vector3 nYD = nY2 - vertices[i];
-
-            normals[i] = Vector3.Cross(nXD, nYD).normalized;*/
-
-            if (sideWays == 0 || sideWays == 1)
-                DrawEdgeFanTopAnd(borderVertices, i, y);
-            else if (sideWays == 2 || sideWays == 3)
+            if (sideWays == 0)
+                DrawEdgeFanTop(pointPosOnCube);
+            /*else if (sideWays == 2 || sideWays == 3)
             {
-                DrawEdgeFanBotAnd(borderVertices, i, y); 
-            }
+                DrawEdgeFanBotAndRight(borderVertices, i, y); 
+            }*/
         }
         borderOffset += chunkBaseResolution / 2 + 1;
     }
 
-    public void DrawEdgeFanTopAnd(List<int> borderVertices, int i, int y)
+    public void DrawEdgeFanTop(Vector3 cubePos)
+    {
+        Vector2 shiftOne = new Vector2(1, 1) / chunkBaseResolution;
+        
+        Vector3 vertA = (cubePos + ((0 * planetFace.axisA) + (shiftOne.y * 4 * planetFace.axisB)) * chunkRadius).normalized; // *4, so it 'skips' one
+        Vector3 vertB = (cubePos - ((shiftOne.x * 2 * planetFace.axisA) - (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
+        Vector3 vertC = (cubePos - ((shiftOne.x * 2 * planetFace.axisA) + (0 * 2 * planetFace.axisB)) * chunkRadius).normalized;
+        Vector3 vertD = (cubePos - ((shiftOne.x * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
+
+        if (planetFace.dir == "Forward" && path == "02")
+            Debug.Log(cubePos + ", " + vertA + ", " + vertB + ", " + vertC + ", " + vertD);
+    }
+
+    public void DrawEdgeFanTopAndLeft(List<int> borderVertices, int i, int y, Vector3 cubePos)
     {
 
         if (y != chunkBaseResolution / 2)
@@ -335,7 +330,7 @@ public class Chunk
         }
     }
 
-    public void DrawEdgeFanBotAnd(List<int> borderVertices, int i, int y)
+    public void DrawEdgeFanBotAndRight(List<int> borderVertices, int i, int y)
     {
 
         if (y != chunkBaseResolution / 2)
@@ -371,21 +366,16 @@ public class Chunk
             Vector3 pointPosOnCube = chunkPosition + ((percent.x - .5f) * 2 * planetFace.axisA + (percent.y - .5f) * 2 * planetFace.axisB) * chunkRadius;
 
             Vector3 pointPosOnSphere = pointPosOnCube.normalized;
-            float elevation = planetScript.noiseFilter.Evaluate(pointPosOnSphere);
-            vertices[i] = pointPosOnSphere * (1 + elevation) * planetScript.planetRadius; //pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
 
-            //Normal calculation - probably slow, maybe upgrade to compute shader later
+            if (!planetFace.verticeSN.ContainsKey(pointPosOnSphere))
+            {
+                planetFace.faceVertices.Add(pointPosOnSphere);
+                planetFace.verticeSN.Add(pointPosOnSphere, planetFace.hashCounter);
+                ++planetFace.hashCounter;
+            }
 
-            /*Vector3 nX2 = (pointPosOnCube + 2 * planetFace.axisA).normalized;
-            Vector3 nY2 = (pointPosOnCube + 2 * planetFace.axisB).normalized;
-
-            Vector3 nX2S = nX2 * (1 + planetScript.noiseFilter.Evaluate(nX2)) * planetScript.planetRadius;
-            Vector3 nY2S = nY2 * (1 + planetScript.noiseFilter.Evaluate(nY2)) * planetScript.planetRadius;
-
-            Vector3 nXD = nX2 - vertices[i];
-            Vector3 nYD = nY2 - vertices[i];
-
-            normals[i] = Vector3.Cross(nXD, nYD).normalized;*/
+            //float elevation = planetScript.noiseFilter.Evaluate(pointPosOnSphere);
+            vertices[i] = pointPosOnSphere; // * (1 + elevation) * planetScript.planetRadius; //pointPosOnSphere * planetScript.planetRadius + pointPosOnSphere * noiseFilter.Evaluate(pointPosOnSphere) * 50;
 
             if (sideWays == 0) // || sideWays == 1)
                 DrawSimpleBorderTopAnd(borderVertices, i, y);
@@ -531,6 +521,17 @@ public class Chunk
             triangles[triangleOffset + 2] = i + 1 + planetFace.offset;
 
             triangleOffset += 3;
+        }
+    }
+
+    void CheckVertexInHashTable(Vector3 vertex)
+    {
+
+        if (!planetFace.verticeSN.ContainsKey(vertex))
+        {
+            planetFace.faceVertices.Add(vertex);
+            planetFace.verticeSN.Add(vertex, planetFace.hashCounter);
+            ++planetFace.hashCounter;
         }
     }
 
@@ -720,182 +721,6 @@ public class Chunk
                 return false;
         }
 
-        return false;
-    }
-
-
-
-
-
-
-    //Not used - only to show at consultation
-
-    public void GetChunkBorderPosition()
-    {
-        switch (borderPosition)
-        {
-            case BorderPositions.root:
-                {
-                    topLeftBordPos = BorderPositions.topLeftCorner;
-                    topRightBordPos = BorderPositions.topRightCorner;
-                    botLeftBordPos = BorderPositions.botLeftCorner;
-                    botRightBordPos = BorderPositions.botRightCorner;
-                    break;
-                }
-            case BorderPositions.topLeftCorner:
-                {
-                    topLeftBordPos = BorderPositions.topLeftCorner;
-                    topRightBordPos = BorderPositions.topMidBorder;
-                    botLeftBordPos = BorderPositions.leftMidBorder;
-                    break;
-                }
-            case BorderPositions.topRightCorner:
-                {
-                    topLeftBordPos = BorderPositions.topMidBorder;
-                    topRightBordPos = BorderPositions.topRightCorner;
-                    botRightBordPos = BorderPositions.rightMidBorder;
-                    break;
-                }
-            case BorderPositions.botLeftCorner:
-                {
-                    topLeftBordPos = BorderPositions.leftMidBorder;
-                    botLeftBordPos = BorderPositions.botLeftCorner;
-                    botRightBordPos = BorderPositions.botMidBorder;
-                    break;
-                }
-            case BorderPositions.botRightCorner:
-                {
-                    topRightBordPos = BorderPositions.rightMidBorder;
-                    botLeftBordPos = BorderPositions.botMidBorder;
-                    botRightBordPos = BorderPositions.botRightCorner;
-                    break;
-                }
-            case BorderPositions.topMidBorder:
-                {
-                    topLeftBordPos = BorderPositions.topMidBorder;
-                    topRightBordPos = BorderPositions.topMidBorder;
-                    break;
-                }
-            case BorderPositions.leftMidBorder:
-                {
-                    topLeftBordPos = BorderPositions.leftMidBorder;
-                    botLeftBordPos = BorderPositions.leftMidBorder;
-                    break;
-                }
-            case BorderPositions.rightMidBorder:
-                {
-                    topRightBordPos = BorderPositions.rightMidBorder;
-                    botRightBordPos = BorderPositions.rightMidBorder;
-                    break;
-                }
-            case BorderPositions.botMidBorder:
-                {
-                    botLeftBordPos = BorderPositions.botMidBorder;
-                    botRightBordPos = BorderPositions.botMidBorder;
-                    break;
-                }
-            default:
-                break;
-        }
-    }
-
-    public int CheckIfNeighbourLODSmaller(int dir)
-    {
-        List<Corners> neighbourPath = InvertedPath(dir, new List<Corners>());
-        Chunk neighbour = planetFace.baseChunk;
-        neighbourPath.RemoveAt(0);
-
-        while (neighbourPath.Count > 0)
-        {
-            if (neighbour.subChunks.Length > 0)
-            {
-                if (neighbourPath[0] == Corners.topLeft) neighbour = neighbour.subChunks[0];
-                else if (neighbourPath[0] == Corners.topRight) neighbour = neighbour.subChunks[1];
-                else if (neighbourPath[0] == Corners.botLeft) neighbour = neighbour.subChunks[2];
-                else if (neighbourPath[0] == Corners.botRight) neighbour = neighbour.subChunks[3];
-                neighbourPath.RemoveAt(0);
-            }
-            else
-                break;
-        }
-        if (neighbour.chunkLODLevel < chunkLODLevel) return 1;
-        return 0;
-    }
-    public List<Corners> InvertedPath(int dir, List<Corners> cornerPath)
-    {
-        List<Corners> tmpCornerPath = cornerPath;
-        Corners tmpCorner;
-
-        if (corner != Corners.middle) // Stops at baseChunk
-            if (HasSiblingTowards(dir))
-            {
-                tmpCorner = InvertDirection(dir, corner);
-                tmpCornerPath.Insert(0, tmpCorner);
-
-                parentChunk.InvertedPath(-1, tmpCornerPath); // In HasSiblingTowards: -1 % 2 == -1 => Adds parentChunk base corner instead of the inverted one
-            }
-            else
-            {
-                tmpCorner = InvertDirection(dir, corner);
-                tmpCornerPath.Insert(0, tmpCorner);
-
-                parentChunk.InvertedPath(dir, tmpCornerPath); // Call on parentChunk
-            }
-        else
-            tmpCornerPath.Insert(0, Corners.middle);
-
-        return tmpCornerPath; // Return path with inversions
-    }
-    public Corners InvertDirection(int dir, Corners corner)
-    {
-
-        if (dir % 2 == 1) // HorizontalSide
-        {
-            if (corner == Corners.topLeft) return Corners.topRight; // topLeft  -> topRight
-            else if (corner == Corners.topRight) return Corners.topLeft;  // topRight -> topLeft
-            else if (corner == Corners.botLeft) return Corners.botRight; // botLeft  -> botRight
-            else if (corner == Corners.botRight) return Corners.botLeft;  // botRight -> botLeft
-        }
-        else
-        if (dir % 2 == 0) // VerticalSide
-        {
-            if (corner == Corners.topLeft) return Corners.botLeft;  // topLeft -> botLeft
-            else if (corner == Corners.topRight) return Corners.botRight; // topRight -> botRight
-            else if (corner == Corners.botLeft) return Corners.topLeft;  // botLeft -> topLeft
-            else if (corner == Corners.botRight) return Corners.topRight; // botRight -> topRight
-        }
-        return corner;
-    }
-    public bool HasSiblingTowards(int dir) // True if has sibling towards a direction (Top = 0, Left = 1, Bot = 2, Right = 3)
-    {
-        if (dir == 0) // TopSide
-        {
-            if (corner == Corners.botLeft || corner == Corners.botRight) // BotSides
-                return true;
-            else if (corner == Corners.topLeft || corner == Corners.topRight) // TopSides
-                return false;
-        }
-        else if (dir == 1) // LeftSide
-        {
-            if (corner == Corners.topRight || corner == Corners.botRight) // RightSides
-                return true;
-            else if (corner == Corners.topLeft || corner == Corners.botLeft) // LeftSides
-                return false;
-        }
-        else if (dir == 2) // BotSide
-        {
-            if (corner == Corners.topLeft || corner == Corners.topRight) // TopSides
-                return true;
-            else if (corner == Corners.botLeft || corner == Corners.botRight) // BotSides
-                return false;
-        }
-        else if (dir == 3) // RightSide
-        {
-            if (corner == Corners.topLeft || corner == Corners.botLeft) // LeftSides
-                return true;
-            else if (corner == Corners.topRight || corner == Corners.botRight) // RightSides
-                return false;
-        }
         return false;
     }
 }

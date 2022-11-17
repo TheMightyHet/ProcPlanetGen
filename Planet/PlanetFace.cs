@@ -24,6 +24,10 @@ public class PlanetFace
     public int set = 0;
     public string dir = "";
 
+    public List<Vector3> faceVertices = new();
+    public Hashtable verticeSN = new();
+    public int hashCounter = 0;
+
     public enum Corners { topLeft, topRight, botLeft, botRight, middle }
     public enum BorderPositions { topLeftCorner, topRightCorner, botLeftCorner, botRightCorner, topMidBorder, botMidBorder, leftMidBorder, rightMidBorder, middle, root}
 
@@ -63,41 +67,38 @@ public class PlanetFace
             offset += chunkData.Item1.Length;
         }
 
-
-        Vector3[] verts = vertices.ToArray();
-        int[] tris = triangles.ToArray();
-        
-        List<Vector3> newVerts = new List<Vector3>();
-
-        foreach (Vector3 vert in verts)
+        if (dir == "Forward")
         {
-            foreach (Vector3 newVert in newVerts)
-                if (vert.Equals(newVert))
-                    goto skipToNext;
+            List<Vector3> notInHashTableVertices = new List<Vector3>();
 
-            newVerts.Add(vert);
-
-        skipToNext:;
-        }
-
-        for (int i = 0; i < tris.Length; ++i)
-        {
-            for (int j = 0; j < newVerts.Count; ++j)
+            foreach (var vert in vertices)
             {
-                if (newVerts[j].Equals(verts[tris[i]]))
+                if (!verticeSN.ContainsKey(vert))
                 {
-                    tris[i] = j;
-                    break;
+                    notInHashTableVertices.Add(vert);
                 }
             }
+
+
+            Debug.Log(notInHashTableVertices.Count + ", " + verticeSN.Count);
+
+            var asd = "HashTable: ";
+
+            foreach (DictionaryEntry htEntry in verticeSN)
+            {
+                asd += "(" + htEntry.Key + ": " + htEntry.Value + "), ";
+            }
+            Debug.Log(asd);
         }
 
         
         offset = 0;
 
         mesh.Clear();
-        mesh.vertices = newVerts.ToArray();
-        mesh.triangles = tris;
+        mesh.vertices = faceVertices.ToArray();
+        mesh.triangles = triangles.ToArray();
+        //mesh.vertices = newVerts.ToArray();
+        //mesh.triangles = tris;
         mesh.RecalculateNormals();
     }
 

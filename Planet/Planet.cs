@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class Planet : MonoBehaviour
 {
-    public readonly int planetRadius = 1000;
+    public readonly int planetRadius = 1;
+    public int l = 0;
 
     [SerializeField,HideInInspector] 
     MeshFilter[] meshFilters;
@@ -13,7 +14,7 @@ public class Planet : MonoBehaviour
     public Transform playerObj;
     [HideInInspector] public float playerDistance;
 
-    public NoiseFilter noiseFilter = new NoiseFilter();
+    public NoiseFilter noiseFilter = new();
 
     public float[] distanceLOD; 
 
@@ -29,7 +30,7 @@ public class Planet : MonoBehaviour
     }
 
     float elapsedTime;
-    readonly float timeLimit = 5f;
+    readonly float timeLimit = .1f;
     private void Update()
     {
         playerDistance = Vector3.Distance(transform.position, playerObj.transform.position); 
