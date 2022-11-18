@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 using static PlanetFace;
@@ -11,7 +12,6 @@ public class Chunk
     public Planet planetScript;
     public PlanetFace planetFace;
     public NoiseFilter noiseFilter = new();
-    public Chunk parentChunk;
 
     public int chunkBaseResolution = 8;
 
@@ -22,20 +22,20 @@ public class Chunk
     public int chunkLODLevel;
 
     public Vector2 shiftOne;
+    public (Vector3, Vector3) step;
 
-    public Vector3[] vertices;
-    public List<int> triangles = new();
-    public Vector3[] normals;
-    public Color[] colors;
+    public List<int> chunkTriangles = new();
+    public List<int> middleTriangles = new();
+    public List<int> topBorderTriangles = new();
+    public List<int> leftBorderTriangles = new();
+    public List<int> botBorderTriangles = new();
+    public List<int> rightBorderTriangles = new();
 
-    public Corners corner;
-    public BorderPositions borderPosition;
-    public BorderPositions topLeftBordPos = PlanetFace.BorderPositions.middle, topRightBordPos = PlanetFace.BorderPositions.middle, botLeftBordPos = PlanetFace.BorderPositions.middle, botRightBordPos = PlanetFace.BorderPositions.middle;
     public int[] neighbours;
-    public Chunk(Chunk parentChunk, string path, Planet planetScript, PlanetFace planetFace, Chunk[] subChunks,
-                Vector3 chunkPosition, float chunkRadius, int chunkLODLevel, PlanetFace.Corners corner, PlanetFace.BorderPositions borderPosition, int[] neighbours)
+    public int[] neighboursPrev = new[]{-1, -1, -1, -1};
+
+    public Chunk(string path, Planet planetScript, PlanetFace planetFace, Chunk[] subChunks, Vector3 chunkPosition, float chunkRadius, int chunkLODLevel, int[] neighbours)
     {
-        this.parentChunk = parentChunk;
         this.path = path;
         this.planetScript = planetScript;
         this.planetFace = planetFace;
@@ -43,11 +43,9 @@ public class Chunk
         this.chunkPosition = chunkPosition;
         this.chunkRadius = chunkRadius;
         this.chunkLODLevel = chunkLODLevel;
-        this.corner = corner;
-        this.borderPosition = borderPosition;
         this.neighbours = neighbours;
 
-        shiftOne = new Vector2(1, 1) / chunkBaseResolution;
+        step = ((2f / (float)chunkBaseResolution) * chunkRadius * planetFace.axisA, (2f / (float)chunkBaseResolution) * chunkRadius * planetFace.axisB);
     }
 
     public void GenerateSubChunks()
@@ -65,10 +63,10 @@ public class Chunk
                 Vector3 botLeft  = chunkPosition - (.5f * chunkRadius * planetFace.axisA) - (.5f * chunkRadius * planetFace.axisB);
                 Vector3 botRight = chunkPosition - (.5f * chunkRadius * planetFace.axisA) + (.5f * chunkRadius * planetFace.axisB);
 
-                subChunks[0] = new Chunk(this, path + "0", planetScript, planetFace, new Chunk[0], topLeft,  chunkRadius * .5f, chunkLODLevel + 1, Corners.topLeft,  topLeftBordPos,  new int[4]);
-                subChunks[1] = new Chunk(this, path + "1", planetScript, planetFace, new Chunk[0], topRight, chunkRadius * .5f, chunkLODLevel + 1, Corners.topRight, topRightBordPos, new int[4]);
-                subChunks[2] = new Chunk(this, path + "2", planetScript, planetFace, new Chunk[0], botLeft,  chunkRadius * .5f, chunkLODLevel + 1, Corners.botLeft,  botLeftBordPos,  new int[4]);
-                subChunks[3] = new Chunk(this, path + "3", planetScript, planetFace, new Chunk[0], botRight, chunkRadius * .5f, chunkLODLevel + 1, Corners.botRight, botRightBordPos, new int[4]);
+                subChunks[0] = new Chunk(path + "0", planetScript, planetFace, new Chunk[0], topLeft,  chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
+                subChunks[1] = new Chunk(path + "1", planetScript, planetFace, new Chunk[0], topRight, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
+                subChunks[2] = new Chunk(path + "2", planetScript, planetFace, new Chunk[0], botLeft,  chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
+                subChunks[3] = new Chunk(path + "3", planetScript, planetFace, new Chunk[0], botRight, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
 
                 foreach (Chunk chunk in subChunks)
                 {
@@ -105,31 +103,44 @@ public class Chunk
         }
     }
 
-    internal (Vector3[], Vector3[], List<int>, Color[]) GetSubChunkData()
+    internal List<int> GetChunkData()
     {
+        chunkTriangles.Clear();
+
         CheckNeighbourChunkLODsSmaller();
 
-        int topVerticesCount = neighbours[0] == 1 ? chunkBaseResolution / 2 + 1 : chunkBaseResolution + 1;
-        int leftVerticesCount = neighbours[1] == 1 ? chunkBaseResolution / 2 + 1 : chunkBaseResolution + 1;
-        int botVerticesCount = neighbours[2] == 1 ? chunkBaseResolution / 2 + 1 : chunkBaseResolution + 1;
-        int righttVerticesCount = neighbours[3] == 1 ? chunkBaseResolution / 2 + 1 : chunkBaseResolution + 1;
+        if (!middleTriangles.Any()) CalculateChunkMiddle();
 
-        vertices = new Vector3[(chunkBaseResolution - 1) * (chunkBaseResolution - 1) + topVerticesCount + botVerticesCount + leftVerticesCount + righttVerticesCount];
-        triangles.Clear();
-        normals = new Vector3[vertices.Length];
-        colors = new Color[vertices.Length];
+        if (neighbours[0] != neighboursPrev[0])
+        {
+            topBorderTriangles.Clear();
+            if (neighbours[0] == 1) CalculateChunkBorderEdgeFan(chunkBaseResolution, 0); else CalculateChunkBorder(chunkBaseResolution, 0);
+        }
+        if (neighbours[1] != neighboursPrev[1])
+        {
+            leftBorderTriangles.Clear();
+            if (neighbours[1] == 1) CalculateChunkBorderEdgeFan(0, 1); else CalculateChunkBorder(0, 1);
+        }
+        if (neighbours[2] != neighboursPrev[2])
+        {
+            botBorderTriangles.Clear();
+            if (neighbours[2] == 1) CalculateChunkBorderEdgeFan(0, 2); else CalculateChunkBorder(0, 2);
+        }
+        if (neighbours[3] != neighboursPrev[3])
+        {
+            rightBorderTriangles.Clear();
+            if (neighbours[3] == 1) CalculateChunkBorderEdgeFan(chunkBaseResolution, 3); else CalculateChunkBorder(chunkBaseResolution, 3);
+        }
 
-        CalculateChunkMiddle();
-        if (neighbours[0] == 1) CalculateChunkBorderEdgeFan(chunkBaseResolution, 0); else CalculateChunkBorder(chunkBaseResolution, 0);
-        if (neighbours[1] == 1) CalculateChunkBorderEdgeFan(0, 1); else CalculateChunkBorder(0, 1);
-        if (neighbours[2] == 1) CalculateChunkBorderEdgeFan(0, 2); else CalculateChunkBorder(0, 2);
-        if (neighbours[3] == 1) CalculateChunkBorderEdgeFan(chunkBaseResolution, 3); else CalculateChunkBorder(chunkBaseResolution, 3);
+        neighboursPrev = neighbours;
 
+        chunkTriangles.AddRange(middleTriangles);
+        chunkTriangles.AddRange(topBorderTriangles);
+        chunkTriangles.AddRange(leftBorderTriangles);
+        chunkTriangles.AddRange(botBorderTriangles);
+        chunkTriangles.AddRange(rightBorderTriangles);
 
-        for (int i = 0; i < vertices.Length; ++i)
-            colors[i] = Color.Lerp(Color.red, Color.green, UnityEngine.Random.value);//noiseFilter.Evaluate(vertices[i].normalized * planetScript.planetRadius));
-
-        return (vertices, normals, triangles, colors); //GetTriangles());
+        return chunkTriangles;
     }
 
     public void CalculateChunkMiddle()
@@ -141,15 +152,12 @@ public class Chunk
                 Vector2 percent = new Vector2(x + 1, y + 1) / chunkBaseResolution;
                 Vector3 pointPosOnCube = chunkPosition + ((percent.x - .5f) * 2 * planetFace.axisA + (percent.y - .5f) * 2 * planetFace.axisB) * chunkRadius;
                 Vector3 pointPosOnSphere = pointPosOnCube.normalized;
-
                 CheckVertexInHashTable(pointPosOnSphere);
-
                 if (x != chunkBaseResolution - 2 && y != chunkBaseResolution - 2)
                 {
-                    Vector3 vertA = (pointPosOnCube + ((shiftOne.x * 2 * planetFace.axisA) + (0 * 2 * planetFace.axisB)) * chunkRadius).normalized;
-                    Vector3 vertB = (pointPosOnCube + ((shiftOne.x * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-                    Vector3 vertC = (pointPosOnCube + ((0 * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+                    Vector3 vertA = (pointPosOnCube + step.Item1).normalized;
+                    Vector3 vertB = (pointPosOnCube + step.Item1 + step.Item2).normalized;
+                    Vector3 vertC = (pointPosOnCube + step.Item2).normalized;
                     CheckVertexInHashTable(vertA);
                     CheckVertexInHashTable(vertB);
                     CheckVertexInHashTable(vertC);
@@ -176,9 +184,7 @@ public class Chunk
         {
             Vector2 percent = sideWays % 2 == 0 ? new Vector2(border, y * 2) / chunkBaseResolution : new Vector2(y * 2, border) / chunkBaseResolution;
             Vector3 pointPosOnCube = chunkPosition + ((percent.x - .5f) * 2 * planetFace.axisA + (percent.y - .5f) * 2 * planetFace.axisB) * chunkRadius;
-
             CheckVertexInHashTable(pointPosOnCube.normalized);
-
             if (sideWays == 0) DrawEdgeFanTop(pointPosOnCube, y);
             if (sideWays == 1) DrawEdgeFanLeft(pointPosOnCube, y);
             if (sideWays == 2) DrawEdgeFanBot(pointPosOnCube, y);
@@ -188,114 +194,95 @@ public class Chunk
 
     void DrawEdgeFanTop(Vector3 cubePos, int vertY)
     {
-        Vector3 vertA = (cubePos + (shiftOne.y * 4 * planetFace.axisB * chunkRadius)).normalized; // *4, so it 'skips' one
-        Vector3 vertB = (cubePos - ((shiftOne.x * 2 * planetFace.axisA) - (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+        Vector3 vertA = (cubePos + step.Item2 * 2).normalized;
+        Vector3 vertB = (cubePos - step.Item1 + step.Item2).normalized;
         CheckVertexInHashTable(vertA);
         CheckVertexInHashTable(vertB);
-
         if (vertY != chunkBaseResolution / 2)
         {
-            AddTriangle(cubePos.normalized, vertA, vertB);
+            AddTopBorderTriangle(cubePos.normalized, vertA, vertB);
         }
         if (vertY > 0 && vertY < chunkBaseResolution / 2)
         {
-            Vector3 vertC = (cubePos - (shiftOne.x * 2 * planetFace.axisA) * chunkRadius).normalized;
-            Vector3 vertD = (cubePos - ((shiftOne.x * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+            Vector3 vertC = (cubePos - step.Item1).normalized;
+            Vector3 vertD = (cubePos - step.Item1 - step.Item2).normalized;
             CheckVertexInHashTable(vertC);
             CheckVertexInHashTable(vertD);
-
-            AddTriangle(cubePos.normalized, vertB, vertC);
-            AddTriangle(cubePos.normalized, vertC, vertD);
+            AddTopBorderTriangle(cubePos.normalized, vertB, vertC);
+            AddTopBorderTriangle(cubePos.normalized, vertC, vertD);
         }
     }
 
     void DrawEdgeFanLeft(Vector3 cubePos, int vertY)
     {
-        Vector3 vertA = (cubePos + (shiftOne.x * 4 * planetFace.axisA) * chunkRadius).normalized; // *4, so it 'skips' one
-        Vector3 vertB = (cubePos + ((shiftOne.x * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+        Vector3 vertA = (cubePos + step.Item1 * 2).normalized;
+        Vector3 vertB = (cubePos + step.Item1 + step.Item2).normalized;
         CheckVertexInHashTable(vertA);
         CheckVertexInHashTable(vertB);
-
         if (vertY != chunkBaseResolution / 2)
         {
-            AddTriangle(cubePos.normalized, vertA, vertB);
+            AddLeftBorderTriangle(cubePos.normalized, vertA, vertB);
         }
         if (vertY > 0 && vertY < chunkBaseResolution / 2)
         {
-            Vector3 vertC = (cubePos + (shiftOne.y * 2 * planetFace.axisB) * chunkRadius).normalized;
-            Vector3 vertD = (cubePos + (-(shiftOne.x * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+            Vector3 vertC = (cubePos + step.Item2).normalized;
+            Vector3 vertD = (cubePos - step.Item1 + step.Item2).normalized;
             CheckVertexInHashTable(vertC);
             CheckVertexInHashTable(vertD);
-
-            AddTriangle(cubePos.normalized, vertB, vertC);
-            AddTriangle(cubePos.normalized, vertC, vertD);
+            AddLeftBorderTriangle(cubePos.normalized, vertB, vertC);
+            AddLeftBorderTriangle(cubePos.normalized, vertC, vertD);
         }
     }
 
     public void DrawEdgeFanBot(Vector3 cubePos, int vertY)
     {
-        Vector3 vertA = (cubePos + (shiftOne.y * 4 * planetFace.axisB) * chunkRadius).normalized; // *4, so it 'skips' one
-        Vector3 vertB = (cubePos + ((shiftOne.x * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+        Vector3 vertA = (cubePos + step.Item2 * 2).normalized;
+        Vector3 vertB = (cubePos + step.Item1 + step.Item2).normalized;
         CheckVertexInHashTable(vertA);
         CheckVertexInHashTable(vertB);
-
         if (vertY != chunkBaseResolution / 2)
         {
-            AddTriangle(cubePos.normalized, vertB, vertA);
+            AddBotBorderTriangle(cubePos.normalized, vertB, vertA);
         }
         if (vertY > 0 && vertY < chunkBaseResolution / 2)
         {
-            Vector3 vertC = (cubePos + (shiftOne.x * 2 * planetFace.axisA) * chunkRadius).normalized;
-            Vector3 vertD = (cubePos + ((shiftOne.x * 2 * planetFace.axisA) - (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+            Vector3 vertC = (cubePos + step.Item1).normalized;
+            Vector3 vertD = (cubePos + step.Item1 - step.Item2).normalized;
             CheckVertexInHashTable(vertC);
             CheckVertexInHashTable(vertD);
-
-            AddTriangle(cubePos.normalized, vertC, vertB);
-            AddTriangle(cubePos.normalized, vertD, vertC);
+            AddBotBorderTriangle(cubePos.normalized, vertC, vertB);
+            AddBotBorderTriangle(cubePos.normalized, vertD, vertC);
         }
     }
 
     void DrawEdgeFanRight(Vector3 cubePos, int vertY)
     {
-        Vector3 vertA = (cubePos + (shiftOne.x * 4 * planetFace.axisA) * chunkRadius).normalized; // *4, so it 'skips' one
-        Vector3 vertB = (cubePos + ((shiftOne.x * 2 * planetFace.axisA) - (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+        Vector3 vertA = (cubePos + step.Item1 * 2).normalized;
+        Vector3 vertB = (cubePos + step.Item1 - step.Item2).normalized;
         CheckVertexInHashTable(vertA);
         CheckVertexInHashTable(vertB);
-
         if (vertY != chunkBaseResolution / 2)
         {
-            AddTriangle(cubePos.normalized, vertB, vertA);
+            AddRightBorderTriangle(cubePos.normalized, vertB, vertA);
         }
         if (vertY > 0 && vertY < chunkBaseResolution / 2)
         {
-            Vector3 vertC = (cubePos - (shiftOne.y * 2 * planetFace.axisB) * chunkRadius).normalized;
-            Vector3 vertD = (cubePos - ((shiftOne.x * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+            Vector3 vertC = (cubePos - step.Item2).normalized;
+            Vector3 vertD = (cubePos - step.Item1 - step.Item2).normalized;
             CheckVertexInHashTable(vertC);
             CheckVertexInHashTable(vertD);
-
-            AddTriangle(cubePos.normalized, vertC, vertB);
-            AddTriangle(cubePos.normalized, vertD, vertC);
+            AddRightBorderTriangle(cubePos.normalized, vertC, vertB);
+            AddRightBorderTriangle(cubePos.normalized, vertD, vertC);
         }
     }
 
     public void CalculateChunkBorder(int border, int sideWays)
     { 
-        // BorderWithoutEdgeFans
         for (int y = 0; y < chunkBaseResolution + 1; y++)
         {
             Vector2 percent = sideWays % 2 == 0 ? new Vector2(border, y) / chunkBaseResolution : new Vector2(y, border) / chunkBaseResolution;
             Vector3 pointPosOnCube = chunkPosition + ((percent.x - .5f) * 2 * planetFace.axisA + (percent.y - .5f) * 2 * planetFace.axisB) * chunkRadius;
-
             CheckVertexInHashTable(pointPosOnCube.normalized);
-
             if (sideWays == 0) DrawSimpleBorderTop(pointPosOnCube, y);
             if (sideWays == 1) DrawSimpleBorderLeft(pointPosOnCube, y);
             if (sideWays == 2) DrawSimpleBorderBot(pointPosOnCube, y);
@@ -305,179 +292,147 @@ public class Chunk
 
     public void DrawSimpleBorderTop(Vector3 cubePos, int vertY)
     {
-        Vector3 vertA = (cubePos + (shiftOne.y * 2 * planetFace.axisB) * chunkRadius).normalized; 
-
+        Vector3 vertA = (cubePos + step.Item2).normalized; 
         CheckVertexInHashTable(vertA);
-
         if (vertY == 0)
         {
-            Vector3 vertB = (cubePos - ((shiftOne.x * 2 * planetFace.axisA) - (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+            Vector3 vertB = (cubePos - step.Item1 + step.Item2).normalized;
             CheckVertexInHashTable(vertB);
-
-            AddTriangle(cubePos.normalized, vertA, vertB);
+            AddTopBorderTriangle(cubePos.normalized, vertA, vertB);
         }
         if (vertY == chunkBaseResolution - 1)
         {
-            Vector3 vertB = (cubePos - (shiftOne.x * 2 * planetFace.axisA) * chunkRadius).normalized;
-
+            Vector3 vertB = (cubePos - step.Item1).normalized;
             CheckVertexInHashTable(vertB);
-
-            AddTriangle(cubePos.normalized, vertA, vertB);
+            AddTopBorderTriangle(cubePos.normalized, vertA, vertB);
         }
         if (vertY > 0 && vertY < chunkBaseResolution - 1)
         {
-            Vector3 vertB = (cubePos - (shiftOne.x * 2 * planetFace.axisA) * chunkRadius).normalized;
-            Vector3 vertC = (cubePos - ((shiftOne.x * 2 * planetFace.axisA) - (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+            Vector3 vertB = (cubePos - step.Item1).normalized;
+            Vector3 vertC = (cubePos - step.Item1 + step.Item2).normalized;
             CheckVertexInHashTable(vertB);
             CheckVertexInHashTable(vertC);
-
             if (vertY % 2 == 1)
             {
-                AddTriangle(cubePos.normalized, vertA, vertB);
-                AddTriangle(vertA, vertC, vertB);
+                AddTopBorderTriangle(cubePos.normalized, vertA, vertB);
+                AddTopBorderTriangle(vertA, vertC, vertB);
             }
             else
             {
-                AddTriangle(cubePos.normalized, vertC, vertB);
-                AddTriangle(cubePos.normalized, vertA, vertC);
+                AddTopBorderTriangle(cubePos.normalized, vertC, vertB);
+                AddTopBorderTriangle(cubePos.normalized, vertA, vertC);
             }
         }
     }
 
     public void DrawSimpleBorderLeft(Vector3 cubePos, int vertY)
     {
-        Vector3 vertA = (cubePos + (shiftOne.y * 2 * planetFace.axisA) * chunkRadius).normalized;
-
+        Vector3 vertA = (cubePos + step.Item1).normalized;
         CheckVertexInHashTable(vertA);
-
         if (vertY == 0)
         {
-            Vector3 vertB = (cubePos + ((shiftOne.x * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+            Vector3 vertB = (cubePos + step.Item1 + step.Item2).normalized;
             CheckVertexInHashTable(vertB);
-
-            AddTriangle(cubePos.normalized, vertA, vertB);
+            AddLeftBorderTriangle(cubePos.normalized, vertA, vertB);
         }
         if (vertY == chunkBaseResolution - 1)
         {
-            Vector3 vertB = (cubePos + (shiftOne.y * 2 * planetFace.axisB) * chunkRadius).normalized;
-
+            Vector3 vertB = (cubePos + step.Item2).normalized;
             CheckVertexInHashTable(vertB);
-
-            AddTriangle(cubePos.normalized, vertA, vertB);
+            AddLeftBorderTriangle(cubePos.normalized, vertA, vertB);
         }
         if (vertY > 0 && vertY < chunkBaseResolution - 1)
         {
-            Vector3 vertB = (cubePos + (shiftOne.y * 2 * planetFace.axisB) * chunkRadius).normalized;
-            Vector3 vertC = (cubePos + ((shiftOne.x * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+            Vector3 vertB = (cubePos + step.Item2).normalized;
+            Vector3 vertC = (cubePos + step.Item1 + step.Item2).normalized;
             CheckVertexInHashTable(vertB);
             CheckVertexInHashTable(vertC);
-
             if (vertY % 2 == 1)
             {
-                AddTriangle(cubePos.normalized, vertA, vertB);
-                AddTriangle(vertA, vertC, vertB);
+                AddLeftBorderTriangle(cubePos.normalized, vertA, vertB);
+                AddLeftBorderTriangle(vertA, vertC, vertB);
             }
             else
             {
-                AddTriangle(cubePos.normalized, vertC, vertB);
-                AddTriangle(cubePos.normalized, vertA, vertC);
+                AddLeftBorderTriangle(cubePos.normalized, vertC, vertB);
+                AddLeftBorderTriangle(cubePos.normalized, vertA, vertC);
             }
         }
     }
 
     public void DrawSimpleBorderBot(Vector3 cubePos, int vertY)
     {
-        Vector3 vertA = (cubePos + (shiftOne.y * 2 * planetFace.axisB) * chunkRadius).normalized;
-
+        Vector3 vertA = (cubePos + step.Item2).normalized;
         CheckVertexInHashTable(vertA);
-
         if (vertY == 0)
         {
-            Vector3 vertB = (cubePos + ((shiftOne.x * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+            Vector3 vertB = (cubePos + step.Item1 + step.Item2).normalized;
             CheckVertexInHashTable(vertB);
-
-            AddTriangle(cubePos.normalized, vertB, vertA);
+            AddBotBorderTriangle(cubePos.normalized, vertB, vertA);
         }
         if (vertY == chunkBaseResolution - 1)
         {
-            Vector3 vertB = (cubePos + (shiftOne.x * 2 * planetFace.axisA) * chunkRadius).normalized;
-
+            Vector3 vertB = (cubePos + step.Item1).normalized;
             CheckVertexInHashTable(vertB);
-
-            AddTriangle(cubePos.normalized, vertB, vertA);
+            AddBotBorderTriangle(cubePos.normalized, vertB, vertA);
         }
         if (vertY > 0 && vertY < chunkBaseResolution - 1)
         {
-            Vector3 vertB = (cubePos + (shiftOne.x * 2 * planetFace.axisA) * chunkRadius).normalized;
-            Vector3 vertC = (cubePos + ((shiftOne.x * 2 * planetFace.axisA) + (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+            Vector3 vertB = (cubePos + step.Item1).normalized;
+            Vector3 vertC = (cubePos + step.Item1 + step.Item2).normalized;
             CheckVertexInHashTable(vertB);
             CheckVertexInHashTable(vertC);
-
             if (vertY % 2 == 1)
             {
-                AddTriangle(cubePos.normalized, vertB, vertA);
-                AddTriangle(vertA, vertB, vertC);
+                AddBotBorderTriangle(cubePos.normalized, vertB, vertA);
+                AddBotBorderTriangle(vertA, vertB, vertC);
             }
             else
             {
-                AddTriangle(cubePos.normalized, vertB, vertC);
-                AddTriangle(cubePos.normalized, vertC, vertA);
+                AddBotBorderTriangle(cubePos.normalized, vertB, vertC);
+                AddBotBorderTriangle(cubePos.normalized, vertC, vertA);
             }
         }
     }
 
     public void DrawSimpleBorderRight(Vector3 cubePos, int vertY)
     {
-        Vector3 vertA = (cubePos + (shiftOne.y * 2 * planetFace.axisA) * chunkRadius).normalized;
-
+        Vector3 vertA = (cubePos + step.Item1).normalized;
         CheckVertexInHashTable(vertA);
-
         if (vertY == 0)
         {
-            Vector3 vertB = (cubePos + ((shiftOne.x * 2 * planetFace.axisA) - (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
+            Vector3 vertB = (cubePos + step.Item1 - step.Item2).normalized;
 
             CheckVertexInHashTable(vertB);
-
-            AddTriangle(cubePos.normalized, vertB, vertA);
+            AddRightBorderTriangle(cubePos.normalized, vertB, vertA);
         }
         if (vertY == chunkBaseResolution - 1)
         {
-            Vector3 vertB = (cubePos - (shiftOne.y * 2 * planetFace.axisB) * chunkRadius).normalized;
-
+            Vector3 vertB = (cubePos - step.Item2).normalized;
             CheckVertexInHashTable(vertB);
-
-            AddTriangle(cubePos.normalized, vertB, vertA);
+            AddRightBorderTriangle(cubePos.normalized, vertB, vertA);
         }
         if (vertY > 0 && vertY < chunkBaseResolution - 1)
         {
-            Vector3 vertB = (cubePos - (shiftOne.y * 2 * planetFace.axisB) * chunkRadius).normalized;
-            Vector3 vertC = (cubePos + ((shiftOne.x * 2 * planetFace.axisA) - (shiftOne.y * 2 * planetFace.axisB)) * chunkRadius).normalized;
-
+            Vector3 vertB = (cubePos - step.Item2).normalized;
+            Vector3 vertC = (cubePos + step.Item1 - step.Item2).normalized;
             CheckVertexInHashTable(vertB);
             CheckVertexInHashTable(vertC);
-
             if (vertY % 2 == 1)
             {
-                AddTriangle(cubePos.normalized, vertB, vertA);
-                AddTriangle(vertA, vertB, vertC);
+                AddRightBorderTriangle(cubePos.normalized, vertB, vertA);
+                AddRightBorderTriangle(vertA, vertB, vertC);
             }
             else
             {
-                AddTriangle(cubePos.normalized, vertB, vertC);
-                AddTriangle(cubePos.normalized, vertC, vertA);
+                AddRightBorderTriangle(cubePos.normalized, vertB, vertC);
+                AddRightBorderTriangle(cubePos.normalized, vertC, vertA);
             }
         }
     }
 
     void CheckVertexInHashTable(Vector3 vertex)
     {
-
         if (!planetFace.verticeSN.ContainsKey(vertex))
         {
             planetFace.faceVertices.Add(vertex);
@@ -488,21 +443,37 @@ public class Chunk
 
     void AddTriangle(Vector3 vertA, Vector3 vertB, Vector3 vertC)
     {
-        triangles.Add((int)planetFace.verticeSN[vertA]);
-        triangles.Add((int)planetFace.verticeSN[vertB]);
-        triangles.Add((int)planetFace.verticeSN[vertC]);
+        middleTriangles.Add((int)planetFace.verticeSN[vertA]);
+        middleTriangles.Add((int)planetFace.verticeSN[vertB]);
+        middleTriangles.Add((int)planetFace.verticeSN[vertC]);
     }
 
-    public Vector3 GetSurfaceNormal(int a, int b, int c)
+    void AddTopBorderTriangle(Vector3 vertA, Vector3 vertB, Vector3 vertC)
     {
-        Vector3 pA = vertices[a];
-        Vector3 pB = vertices[b];
-        Vector3 pC = vertices[c];
-        
-        Vector3 sideAB = pB - pA;
-        Vector3 sideAC = pC - pB;
+        topBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
+        topBorderTriangles.Add((int)planetFace.verticeSN[vertB]);
+        topBorderTriangles.Add((int)planetFace.verticeSN[vertC]);
+    }
 
-        return Vector3.Cross(sideAB, sideAC).normalized;
+    void AddLeftBorderTriangle(Vector3 vertA, Vector3 vertB, Vector3 vertC)
+    {
+        leftBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
+        leftBorderTriangles.Add((int)planetFace.verticeSN[vertB]);
+        leftBorderTriangles.Add((int)planetFace.verticeSN[vertC]);
+    }
+
+    void AddBotBorderTriangle(Vector3 vertA, Vector3 vertB, Vector3 vertC)
+    {
+        botBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
+        botBorderTriangles.Add((int)planetFace.verticeSN[vertB]);
+        botBorderTriangles.Add((int)planetFace.verticeSN[vertC]);
+    }
+
+    void AddRightBorderTriangle(Vector3 vertA, Vector3 vertB, Vector3 vertC)
+    {
+        rightBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
+        rightBorderTriangles.Add((int)planetFace.verticeSN[vertB]);
+        rightBorderTriangles.Add((int)planetFace.verticeSN[vertC]);
     }
 
     public void GetSubChunks()
@@ -516,7 +487,7 @@ public class Chunk
         }
         else
         {
-            if (Vector3.Angle(chunkPosition, planetScript.playerObj.position) < 70)
+            //if (Vector3.Angle(chunkPosition, planetScript.playerObj.position) < 90)
                 planetFace.displayedChunk.Add(this);
         }
     }
@@ -528,25 +499,25 @@ public class Chunk
         {
             case '0': // Corners.topLeft:
                 {
-                    neighbours[0] = CheckIfNeighbourLODSmallerPathV(0); // Top  //borderPosition != BorderPositions.topLeftCorner && borderPosition != BorderPositions.topRightCorner && borderPosition != BorderPositions.topMidBorder ? CheckIfNeighbourLODSmaller(0) : 0; // <- 0 if on faceBorder
-                    neighbours[1] = CheckIfNeighbourLODSmallerPathV(1); // Left //borderPosition != BorderPositions.topLeftCorner && borderPosition != BorderPositions.botLeftCorner && borderPosition != BorderPositions.leftMidBorder ? CheckIfNeighbourLODSmaller(1) : 0; // <- 0 if on faceBorder
+                    neighbours[0] = CheckIfNeighbourLODSmallerPathV(0);
+                    neighbours[1] = CheckIfNeighbourLODSmallerPathV(1);
                     neighbours[2] = 0; // Bot
                     neighbours[3] = 0; // Right
                     break;
                 }
             case '1': // Corners.topRight:
                 {
-                    neighbours[0] = CheckIfNeighbourLODSmallerPathV(0); // Top //borderPosition != BorderPositions.topLeftCorner && borderPosition != BorderPositions.topRightCorner && borderPosition != BorderPositions.topMidBorder ? CheckIfNeighbourLODSmaller(0) : 0; // <- 0 if on faceBorder
+                    neighbours[0] = CheckIfNeighbourLODSmallerPathV(0);
                     neighbours[1] = 0; // Left
                     neighbours[2] = 0; // Bot
-                    neighbours[3] = CheckIfNeighbourLODSmallerPathV(3); // Right //borderPosition != BorderPositions.topRightCorner && borderPosition != BorderPositions.botRightCorner && borderPosition != BorderPositions.rightMidBorder ? CheckIfNeighbourLODSmaller(3) : 0; // <- 0 if on faceBorder
+                    neighbours[3] = CheckIfNeighbourLODSmallerPathV(3);
                     break;
                 }
             case '2': // Corners.botLeft:
                 {
                     neighbours[0] = 0; // Top
-                    neighbours[1] = CheckIfNeighbourLODSmallerPathV(1); // Left //borderPosition != BorderPositions.topLeftCorner && borderPosition != BorderPositions.botLeftCorner && borderPosition != BorderPositions.leftMidBorder ? CheckIfNeighbourLODSmaller(1) : 0; // <- 0 if on faceBorder
-                    neighbours[2] = CheckIfNeighbourLODSmallerPathV(2); // Bot  //borderPosition != BorderPositions.botLeftCorner && borderPosition != BorderPositions.botRightCorner && borderPosition != BorderPositions.botMidBorder ? CheckIfNeighbourLODSmaller(2) : 0; // <- 0 if faceBorder
+                    neighbours[1] = CheckIfNeighbourLODSmallerPathV(1);
+                    neighbours[2] = CheckIfNeighbourLODSmallerPathV(2);
                     neighbours[3] = 0; // Right
                     break;
                 }
@@ -554,8 +525,8 @@ public class Chunk
                 {
                     neighbours[0] = 0; // Top
                     neighbours[1] = 0; // Left
-                    neighbours[2] = CheckIfNeighbourLODSmallerPathV(2); // Bot //borderPosition != BorderPositions.botLeftCorner && borderPosition != BorderPositions.botRightCorner && borderPosition != BorderPositions.botMidBorder ? CheckIfNeighbourLODSmaller(2) : 0; // <- 0 if faceBorder
-                    neighbours[3] = CheckIfNeighbourLODSmallerPathV(3); // Right //borderPosition != BorderPositions.topRightCorner && borderPosition != BorderPositions.botRightCorner && borderPosition != BorderPositions.rightMidBorder ? CheckIfNeighbourLODSmaller(3) : 0; // <- 0 if on faceBorder
+                    neighbours[2] = CheckIfNeighbourLODSmallerPathV(2);
+                    neighbours[3] = CheckIfNeighbourLODSmallerPathV(3);
 
                     break;
                 }

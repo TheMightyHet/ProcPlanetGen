@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Planet : MonoBehaviour
 {
-    public readonly int planetRadius = 1;
+    public readonly float planetRadius = 1000;
 
     [SerializeField,HideInInspector] 
     MeshFilter[] meshFilters;
@@ -16,6 +16,11 @@ public class Planet : MonoBehaviour
     public NoiseFilter noiseFilter = new();
 
     public float[] distanceLOD; 
+
+    public float minElevation = float.MaxValue;
+    public float maxElevation = float.MinValue;
+    public ColorSettings colorSettings;
+    ColorGen colorGen = new ColorGen();
 
     private void Awake()
     {
@@ -29,7 +34,7 @@ public class Planet : MonoBehaviour
     }
 
     float elapsedTime;
-    float timeLimit = .5f;
+    readonly float timeLimit = .5f;
     private void Update()
     {
         playerDistance = Vector3.Distance(transform.position, playerObj.transform.position); 
@@ -44,6 +49,7 @@ public class Planet : MonoBehaviour
 
     void Initialize()
     {
+        colorGen.UpdateSettings(colorSettings);
         distanceLOD = new float[] {
             Mathf.Infinity,
             planetRadius * 3f,
@@ -75,12 +81,12 @@ public class Planet : MonoBehaviour
                     tag = "PlanetFace"
                 };
                 meshObj.transform.parent = transform;
-                meshObj.AddComponent<MeshRenderer>().sharedMaterial = new Material(Shader.Find("Standard"));
-                meshObj.GetComponent<MeshRenderer>().sharedMaterial.color = Color.red;
+                meshObj.AddComponent<MeshRenderer>();
 
                 meshFilters[i] = meshObj.AddComponent<MeshFilter>();
                 meshFilters[i].sharedMesh = new Mesh();
             }
+            meshFilters[i].GetComponent<MeshRenderer>().sharedMaterial = colorSettings.planetMaterial;
 
             planetFaces[i] = new PlanetFace(meshFilters[i].sharedMesh, directions[i], this, directionNames[i]);
         }
@@ -92,6 +98,8 @@ public class Planet : MonoBehaviour
         {
             face.CreateChunkMesh();
         }
+        colorGen.UpdateElevation(minElevation * planetRadius, maxElevation * planetRadius);
+        GenerateColors();
     }
     void UpdateMesh()
     {
@@ -100,5 +108,12 @@ public class Planet : MonoBehaviour
             //face.UpdateChunkMesh();
             face.CreateChunkMesh();
         }
+        colorGen.UpdateElevation(minElevation * planetRadius, maxElevation * planetRadius);
+        GenerateColors();
+    }
+
+    void GenerateColors()
+    {
+        colorGen.UpdateColors();
     }
 }

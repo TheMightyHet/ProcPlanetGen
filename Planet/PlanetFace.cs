@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using UnityEngine;
 
 public class PlanetFace
@@ -20,16 +21,11 @@ public class PlanetFace
     public List<Vector3> normals = new();
     public List<Color> colors = new();
 
-    public int offset = 0;
-    public int set = 0;
     public string dir = "";
 
     public List<Vector3> faceVertices = new();
     public Hashtable verticeSN = new();
     public int hashCounter = 0;
-
-    public enum Corners { topLeft, topRight, botLeft, botRight, middle }
-    public enum BorderPositions { topLeftCorner, topRightCorner, botLeftCorner, botRightCorner, topMidBorder, botMidBorder, leftMidBorder, rightMidBorder, middle, root}
 
     public PlanetFace(Mesh mesh, Vector3 localUp, Planet planetScript, string dir)
     {
@@ -52,28 +48,27 @@ public class PlanetFace
         colors.Clear(); 
         displayedChunk = new List<Chunk>();
 
-        baseChunk = new Chunk(null, "0", planetScript, this, null, localUp * planetScript.planetRadius, planetScript.planetRadius, 0, Corners.middle, BorderPositions.root, null);
+        baseChunk = new Chunk("0", planetScript, this, null, localUp, 1, 0, null);
         baseChunk.GenerateSubChunks();
         baseChunk.GetSubChunks();
 
         foreach (Chunk chunkPart in displayedChunk)
         {
-            (Vector3[], Vector3[], List<int>, Color[]) chunkData = chunkPart.GetSubChunkData();
-            vertices.AddRange(chunkData.Item1);
-            normals.AddRange(chunkData.Item2);
-            triangles.AddRange(chunkData.Item3);
-            colors.AddRange(chunkData.Item4);
-
-            offset += chunkData.Item1.Length;
+            triangles.AddRange(chunkPart.GetChunkData());
         }
-        
-        offset = 0;
+
+        for (int i = 0; i < faceVertices.Count; i++)
+        {
+            float elevation = (1 + planetScript.noiseFilter.Evaluate(faceVertices[i]));
+            vertices.Add(elevation * planetScript.planetRadius * faceVertices[i]);
+
+            if (elevation > planetScript.maxElevation) { planetScript.maxElevation = elevation; }
+            if (elevation < planetScript.minElevation) { planetScript.minElevation = elevation; }
+        }
 
         mesh.Clear();
-        mesh.vertices = faceVertices.ToArray();
+        mesh.vertices = vertices.ToArray();//faceVertices.ToArray();
         mesh.triangles = triangles.ToArray();
-        //mesh.vertices = newVerts.ToArray();
-        //mesh.triangles = tris;
         mesh.RecalculateNormals();
     }
 
@@ -91,7 +86,7 @@ public class PlanetFace
 
         foreach (Chunk chunkPart in displayedChunk)
         {
-            (Vector3[], Vector3[], List<int>, Color[]) chunkData;
+            /*(Vector3[], Vector3[], List<int>, Color[]) chunkData;
 
             if (chunkPart.vertices == null)
                 chunkData = chunkPart.GetSubChunkData();
@@ -104,14 +99,14 @@ public class PlanetFace
             normals.AddRange(chunkData.Item2);
             triangles.AddRange(chunkData.Item3);
             colors.AddRange(chunkData.Item4);
-            offset += chunkData.Item1.Length;
+            offset += chunkData.Item1.Length;*/
         }
 
 
         Vector3[] verts = vertices.ToArray();
         int[] tris = triangles.ToArray();
 
-        List<Vector3> newVerts = new List<Vector3>();
+        List<Vector3> newVerts = new();
 
         foreach (Vector3 vert in verts)
         {
@@ -135,9 +130,6 @@ public class PlanetFace
                 }
             }
         }
-
-
-        offset = 0;
 
         mesh.Clear();
         mesh.vertices = newVerts.ToArray();
