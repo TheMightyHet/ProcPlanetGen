@@ -13,7 +13,7 @@ public class Chunk
     public PlanetFace planetFace;
     public NoiseFilter noiseFilter = new();
 
-    public int chunkBaseResolution = 4;
+    public int chunkBaseResolution = 8;
 
     public Vector3 chunkPosition;
     public Chunk[] subChunks;
@@ -90,7 +90,7 @@ public class Chunk
             {
                 if (subChunks.Length > 0)
                 {
-                    foreach (Chunk chunk in subChunks)
+                    foreach (Chunk chunk in subChunks)  
                     {
                         chunk.UpdateChunk();
                     }
@@ -109,7 +109,7 @@ public class Chunk
 
         CheckNeighbourChunkLODsSmaller();
 
-        if (!middleTriangles.Any()) CalculateChunkMiddle();
+        /*if (!middleTriangles.Any()) CalculateChunkMiddle();
 
         if (neighbours[0] != neighboursPrev[0])
         {
@@ -130,15 +130,23 @@ public class Chunk
         {
             rightBorderTriangles.Clear();
             if (neighbours[3] == 1) CalculateChunkBorderEdgeFan(chunkBaseResolution, 3); else CalculateChunkBorder(chunkBaseResolution, 3);
-        }
+        }*/
+
+        middleTriangles.Clear();
+
+        CalculateChunkMiddle();
+        if (neighbours[0] == 1) CalculateChunkBorderEdgeFan(chunkBaseResolution, 0); else CalculateChunkBorder(chunkBaseResolution, 0);
+        if (neighbours[1] == 1) CalculateChunkBorderEdgeFan(0, 1); else CalculateChunkBorder(0, 1);
+        if (neighbours[2] == 1) CalculateChunkBorderEdgeFan(0, 2); else CalculateChunkBorder(0, 2);
+        if (neighbours[3] == 1) CalculateChunkBorderEdgeFan(chunkBaseResolution, 3); else CalculateChunkBorder(chunkBaseResolution, 3);
 
         neighboursPrev = neighbours;
 
         chunkTriangles.AddRange(middleTriangles);
-        chunkTriangles.AddRange(topBorderTriangles);
+        /*chunkTriangles.AddRange(topBorderTriangles);
         chunkTriangles.AddRange(leftBorderTriangles);
         chunkTriangles.AddRange(botBorderTriangles);
-        chunkTriangles.AddRange(rightBorderTriangles);
+        chunkTriangles.AddRange(rightBorderTriangles);*/
 
         return chunkTriangles;
     }
@@ -450,30 +458,34 @@ public class Chunk
 
     void AddTopBorderTriangle(Vector3 vertA, Vector3 vertB, Vector3 vertC)
     {
-        topBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
+        /*topBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
         topBorderTriangles.Add((int)planetFace.verticeSN[vertB]);
-        topBorderTriangles.Add((int)planetFace.verticeSN[vertC]);
+        topBorderTriangles.Add((int)planetFace.verticeSN[vertC]);*/
+        AddTriangle(vertA, vertB, vertC);
     }
 
     void AddLeftBorderTriangle(Vector3 vertA, Vector3 vertB, Vector3 vertC)
     {
-        leftBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
+        /*leftBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
         leftBorderTriangles.Add((int)planetFace.verticeSN[vertB]);
-        leftBorderTriangles.Add((int)planetFace.verticeSN[vertC]);
+        leftBorderTriangles.Add((int)planetFace.verticeSN[vertC]);*/
+        AddTriangle(vertA, vertB, vertC);
     }
 
     void AddBotBorderTriangle(Vector3 vertA, Vector3 vertB, Vector3 vertC)
     {
-        botBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
+        /*botBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
         botBorderTriangles.Add((int)planetFace.verticeSN[vertB]);
-        botBorderTriangles.Add((int)planetFace.verticeSN[vertC]);
+        botBorderTriangles.Add((int)planetFace.verticeSN[vertC]);*/
+        AddTriangle(vertA, vertB, vertC);
     }
 
     void AddRightBorderTriangle(Vector3 vertA, Vector3 vertB, Vector3 vertC)
     {
-        rightBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
+        /*rightBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
         rightBorderTriangles.Add((int)planetFace.verticeSN[vertB]);
-        rightBorderTriangles.Add((int)planetFace.verticeSN[vertC]);
+        rightBorderTriangles.Add((int)planetFace.verticeSN[vertC]);*/
+        AddTriangle(vertA, vertB, vertC);
     }
 
     public void GetSubChunks()

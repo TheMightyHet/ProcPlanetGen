@@ -51,6 +51,7 @@ public class PlanetFace
         baseChunk = new Chunk("0", planetScript, this, null, localUp, 1, 0, null);
         baseChunk.GenerateSubChunks();
         baseChunk.GetSubChunks();
+        
 
         foreach (Chunk chunkPart in displayedChunk)
         {
@@ -78,62 +79,34 @@ public class PlanetFace
         triangles.Clear();
         normals.Clear();
         colors.Clear();
+
+        faceVertices.Clear();
+        verticeSN.Clear();
+        triangles.Clear();
+        hashCounter = 0;
+
         displayedChunk = new List<Chunk>();
 
         baseChunk.UpdateChunk();
         baseChunk.GetSubChunks();
 
-
         foreach (Chunk chunkPart in displayedChunk)
         {
-            /*(Vector3[], Vector3[], List<int>, Color[]) chunkData;
-
-            if (chunkPart.vertices == null)
-                chunkData = chunkPart.GetSubChunkData();
-            else if (chunkPart.vertices.Length == 0)
-                chunkData = chunkPart.GetSubChunkData();
-            else
-                chunkData = (chunkPart.vertices, chunkPart.normals, chunkPart.triangles, chunkPart.colors);
-
-            vertices.AddRange(chunkData.Item1);
-            normals.AddRange(chunkData.Item2);
-            triangles.AddRange(chunkData.Item3);
-            colors.AddRange(chunkData.Item4);
-            offset += chunkData.Item1.Length;*/
+            triangles.AddRange(chunkPart.GetChunkData());
         }
 
-
-        Vector3[] verts = vertices.ToArray();
-        int[] tris = triangles.ToArray();
-
-        List<Vector3> newVerts = new();
-
-        foreach (Vector3 vert in verts)
+        for (int i = 0; i < faceVertices.Count; i++)
         {
-            foreach (Vector3 newVert in newVerts)
-                if (vert.Equals(newVert))
-                    goto skipToNext;
+            float elevation = (1 + planetScript.noiseFilter.Evaluate(faceVertices[i]));
+            vertices.Add(elevation * planetScript.planetRadius * faceVertices[i]);
 
-            newVerts.Add(vert);
-
-        skipToNext:;
-        }
-
-        for (int i = 0; i < tris.Length; ++i)
-        {
-            for (int j = 0; j < newVerts.Count; ++j)
-            {
-                if (newVerts[j].Equals(verts[tris[i]]))
-                {
-                    tris[i] = j;
-                    break;
-                }
-            }
+            if (elevation > planetScript.maxElevation) { planetScript.maxElevation = elevation; }
+            if (elevation < planetScript.minElevation) { planetScript.minElevation = elevation; }
         }
 
         mesh.Clear();
-        mesh.vertices = newVerts.ToArray();
-        mesh.triangles = tris;
+        mesh.vertices = vertices.ToArray();//faceVertices.ToArray();
+        mesh.triangles = triangles.ToArray();
         mesh.RecalculateNormals();
     }
 }

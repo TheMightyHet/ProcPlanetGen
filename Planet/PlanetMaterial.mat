@@ -61,6 +61,6 @@ Material:
     - _QueueControl: 0
     - _QueueOffset: 0
     m_Colors:
-    - _Borders: {r: 856.9934, g: 1131.8754, b: 0, a: 0}
+    - _Borders: {r: 864.04944, g: 1121.4769, b: 0, a: 0}
     - _elevationBorders: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []

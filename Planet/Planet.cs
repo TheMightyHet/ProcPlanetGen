@@ -20,7 +20,7 @@ public class Planet : MonoBehaviour
     public float minElevation = float.MaxValue;
     public float maxElevation = float.MinValue;
     public ColorSettings colorSettings;
-    ColorGen colorGen = new ColorGen();
+    ColorGen colorGen = new();
 
     private void Awake()
     {
@@ -105,8 +105,8 @@ public class Planet : MonoBehaviour
     {
         foreach (PlanetFace face in planetFaces)
         {
-            //face.UpdateChunkMesh();
-            face.CreateChunkMesh();
+            face.UpdateChunkMesh();
+            //face.CreateChunkMesh();
         }
         colorGen.UpdateElevation(minElevation * planetRadius, maxElevation * planetRadius);
         GenerateColors();

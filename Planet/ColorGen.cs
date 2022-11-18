@@ -6,7 +6,7 @@ public class ColorGen
 {
     ColorSettings settings;
     Texture2D texture;
-    const int textureResolution = 256;
+    const int textureResolution = 1024;
 
     public void UpdateSettings(ColorSettings settings)
     {
