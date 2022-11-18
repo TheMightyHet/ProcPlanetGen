@@ -13,7 +13,7 @@ public class Chunk
     public PlanetFace planetFace;
     public NoiseFilter noiseFilter = new();
 
-    public int chunkBaseResolution = 8;
+    public int chunkBaseResolution = 4;
 
     public Vector3 chunkPosition;
     public Chunk[] subChunks;
@@ -487,7 +487,7 @@ public class Chunk
         }
         else
         {
-            //if (Vector3.Angle(chunkPosition, planetScript.playerObj.position) < 90)
+            if (Vector3.Angle(chunkPosition, planetScript.playerObj.position) < 90)
                 planetFace.displayedChunk.Add(this);
         }
     }
