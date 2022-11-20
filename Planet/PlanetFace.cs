@@ -21,6 +21,8 @@ public class PlanetFace
     public List<Vector3> normals = new();
     public List<Color> colors = new();
 
+    public List<float> vertElevation = new();
+
     public string dir = "";
 
     public List<Vector3> faceVertices = new();
@@ -45,7 +47,8 @@ public class PlanetFace
         vertices.Clear();
         triangles.Clear();
         normals.Clear();
-        colors.Clear(); 
+        colors.Clear();
+        vertElevation.Clear();
         displayedChunk = new List<Chunk>();
 
         baseChunk = new Chunk("0", planetScript, this, null, localUp, 1, 0, null);
@@ -60,16 +63,25 @@ public class PlanetFace
 
         for (int i = 0; i < faceVertices.Count; i++)
         {
-            float elevation = (1 + planetScript.noiseFilter.Evaluate(faceVertices[i]));
-            vertices.Add(elevation * planetScript.planetRadius * faceVertices[i]);
+            float elevation = (1 + planetScript.noiseFilter.Evaluate(faceVertices[i])) * planetScript.planetRadius;
+            vertices.Add(elevation * faceVertices[i]);
+            vertElevation.Add(elevation);
 
             if (elevation > planetScript.maxElevation) { planetScript.maxElevation = elevation; }
             if (elevation < planetScript.minElevation) { planetScript.minElevation = elevation; }
         }
 
+        foreach (var e in vertElevation)
+        {
+            float height = Mathf.InverseLerp(planetScript.minElevation, planetScript.maxElevation, e);
+            colors.Add(planetScript.gradient.Evaluate(height));
+        }
+
+
         mesh.Clear();
         mesh.vertices = vertices.ToArray();//faceVertices.ToArray();
         mesh.triangles = triangles.ToArray();
+        mesh.colors = colors.ToArray();
         mesh.RecalculateNormals();
     }
 
@@ -79,6 +91,7 @@ public class PlanetFace
         triangles.Clear();
         normals.Clear();
         colors.Clear();
+        vertElevation.Clear();
 
         faceVertices.Clear();
         verticeSN.Clear();
@@ -97,16 +110,24 @@ public class PlanetFace
 
         for (int i = 0; i < faceVertices.Count; i++)
         {
-            float elevation = (1 + planetScript.noiseFilter.Evaluate(faceVertices[i]));
-            vertices.Add(elevation * planetScript.planetRadius * faceVertices[i]);
+            float elevation = (1 + planetScript.noiseFilter.Evaluate(faceVertices[i])) * planetScript.planetRadius;
+            vertices.Add(elevation * faceVertices[i]);
+            vertElevation.Add(elevation);
 
             if (elevation > planetScript.maxElevation) { planetScript.maxElevation = elevation; }
             if (elevation < planetScript.minElevation) { planetScript.minElevation = elevation; }
         }
 
+        foreach (var e in vertElevation)
+        {
+            float height = Mathf.InverseLerp(planetScript.minElevation, planetScript.maxElevation, e);
+            colors.Add(planetScript.gradient.Evaluate(height));
+        }
+
         mesh.Clear();
         mesh.vertices = vertices.ToArray();//faceVertices.ToArray();
         mesh.triangles = triangles.ToArray();
+        mesh.colors = colors.ToArray();
         mesh.RecalculateNormals();
     }
 }

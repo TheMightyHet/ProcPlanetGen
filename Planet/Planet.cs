@@ -21,6 +21,7 @@ public class Planet : MonoBehaviour
     public float maxElevation = float.MinValue;
     public ColorSettings colorSettings;
     ColorGen colorGen = new();
+    public Gradient gradient;
 
     private void Awake()
     {
@@ -86,7 +87,8 @@ public class Planet : MonoBehaviour
                 meshFilters[i] = meshObj.AddComponent<MeshFilter>();
                 meshFilters[i].sharedMesh = new Mesh();
             }
-            meshFilters[i].GetComponent<MeshRenderer>().sharedMaterial = colorSettings.planetMaterial;
+            //meshFilters[i].GetComponent<MeshRenderer>().sharedMaterial = colorSettings.planetMaterial;
+            meshFilters[i].GetComponent<MeshRenderer>().sharedMaterial = this.GetComponent<MeshRenderer>().material;
 
             planetFaces[i] = new PlanetFace(meshFilters[i].sharedMesh, directions[i], this, directionNames[i]);
         }
@@ -98,8 +100,8 @@ public class Planet : MonoBehaviour
         {
             face.CreateChunkMesh();
         }
-        colorGen.UpdateElevation(minElevation * planetRadius, maxElevation * planetRadius);
-        GenerateColors();
+        /*colorGen.UpdateElevation(minElevation, maxElevation);
+        GenerateColors();*/
     }
     void UpdateMesh()
     {
@@ -108,8 +110,8 @@ public class Planet : MonoBehaviour
             face.UpdateChunkMesh();
             //face.CreateChunkMesh();
         }
-        colorGen.UpdateElevation(minElevation * planetRadius, maxElevation * planetRadius);
-        GenerateColors();
+        /*colorGen.UpdateElevation(minElevation, maxElevation);
+        GenerateColors();*/
     }
 
     void GenerateColors()
