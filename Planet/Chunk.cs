@@ -133,6 +133,10 @@ public class Chunk
         }*/
 
         middleTriangles.Clear();
+        topBorderTriangles.Clear();
+        leftBorderTriangles.Clear();
+        rightBorderTriangles.Clear();   
+        botBorderTriangles.Clear();
 
         CalculateChunkMiddle();
         if (neighbours[0] == 1) CalculateChunkBorderEdgeFan(chunkBaseResolution, 0); else CalculateChunkBorder(chunkBaseResolution, 0);
@@ -143,10 +147,10 @@ public class Chunk
         neighboursPrev = neighbours;
 
         chunkTriangles.AddRange(middleTriangles);
-        /*chunkTriangles.AddRange(topBorderTriangles);
+        chunkTriangles.AddRange(topBorderTriangles);
         chunkTriangles.AddRange(leftBorderTriangles);
         chunkTriangles.AddRange(botBorderTriangles);
-        chunkTriangles.AddRange(rightBorderTriangles);*/
+        chunkTriangles.AddRange(rightBorderTriangles);
 
         return chunkTriangles;
     }
@@ -458,34 +462,34 @@ public class Chunk
 
     void AddTopBorderTriangle(Vector3 vertA, Vector3 vertB, Vector3 vertC)
     {
-        /*topBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
+        topBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
         topBorderTriangles.Add((int)planetFace.verticeSN[vertB]);
-        topBorderTriangles.Add((int)planetFace.verticeSN[vertC]);*/
-        AddTriangle(vertA, vertB, vertC);
+        topBorderTriangles.Add((int)planetFace.verticeSN[vertC]);
+        //AddTriangle(vertA, vertB, vertC);
     }
 
     void AddLeftBorderTriangle(Vector3 vertA, Vector3 vertB, Vector3 vertC)
     {
-        /*leftBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
+        leftBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
         leftBorderTriangles.Add((int)planetFace.verticeSN[vertB]);
-        leftBorderTriangles.Add((int)planetFace.verticeSN[vertC]);*/
-        AddTriangle(vertA, vertB, vertC);
+        leftBorderTriangles.Add((int)planetFace.verticeSN[vertC]);
+        //AddTriangle(vertA, vertB, vertC);
     }
 
     void AddBotBorderTriangle(Vector3 vertA, Vector3 vertB, Vector3 vertC)
     {
-        /*botBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
+        botBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
         botBorderTriangles.Add((int)planetFace.verticeSN[vertB]);
-        botBorderTriangles.Add((int)planetFace.verticeSN[vertC]);*/
-        AddTriangle(vertA, vertB, vertC);
+        botBorderTriangles.Add((int)planetFace.verticeSN[vertC]);
+        //AddTriangle(vertA, vertB, vertC);
     }
 
     void AddRightBorderTriangle(Vector3 vertA, Vector3 vertB, Vector3 vertC)
     {
-        /*rightBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
+        rightBorderTriangles.Add((int)planetFace.verticeSN[vertA]);
         rightBorderTriangles.Add((int)planetFace.verticeSN[vertB]);
-        rightBorderTriangles.Add((int)planetFace.verticeSN[vertC]);*/
-        AddTriangle(vertA, vertB, vertC);
+        rightBorderTriangles.Add((int)planetFace.verticeSN[vertC]);
+        //AddTriangle(vertA, vertB, vertC);
     }
 
     public void GetSubChunks()
