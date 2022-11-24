@@ -18,12 +18,12 @@ public class PlanetFace
 
     public List<Vector3> vertices = new();
     public List<int> triangles = new();
-    public List<Vector3> normals = new();
+    public Vector3[] normals;
     public List<Color> colors = new();
 
-    public List<float> vertElevation = new();
-
     public string dir = "";
+
+    public List<float> vertElevation = new();
 
     public List<Vector3> faceVertices = new();
     public Hashtable verticeSN = new();
@@ -36,8 +36,10 @@ public class PlanetFace
         this.planetScript = planetScript;
         this.dir = dir;
 
-        axisA = new Vector3(localUp.y, localUp.z, localUp.x);
-        axisB = Vector3.Cross(localUp, axisA);
+        axisA = /*dir == "Back" ? new Vector3(0, 1, 0) :*/ new Vector3(localUp.y, localUp.z, localUp.x);
+        axisB = /*dir == "Back" ? new Vector3(-1, 0, 0) :*/ Vector3.Cross(localUp, axisA);
+
+        Debug.Log(dir + ", " + localUp + ", " + axisA + ", " + axisB);
 
         mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
     }
@@ -46,7 +48,6 @@ public class PlanetFace
     {
         vertices.Clear();
         triangles.Clear();
-        normals.Clear();
         colors.Clear();
         vertElevation.Clear();
         displayedChunk = new List<Chunk>();
@@ -71,11 +72,13 @@ public class PlanetFace
             if (elevation < planetScript.minElevation) { planetScript.minElevation = elevation; }
         }
 
-        foreach (var e in vertElevation)
+
+
+        /*foreach (var e in vertElevation)
         {
             float height = Mathf.InverseLerp(planetScript.minElevation, planetScript.maxElevation, e);
             colors.Add(planetScript.gradient.Evaluate(height));
-        }
+        }*/
 
 
         mesh.Clear();
@@ -89,7 +92,6 @@ public class PlanetFace
     {
         vertices.Clear();
         triangles.Clear();
-        normals.Clear();
         colors.Clear();
         vertElevation.Clear();
 
@@ -118,16 +120,51 @@ public class PlanetFace
             if (elevation < planetScript.minElevation) { planetScript.minElevation = elevation; }
         }
 
-        foreach (var e in vertElevation)
+        normals = new Vector3[vertices.Count];
+
+        int triangleCount = triangles.Count / 3;
+
+        int vertexIndexA;
+        int vertexIndexB;
+        int vertexIndexC;
+
+        Vector3 triangleNormal; 
+        
+        for (int i = 0; i < triangleCount; i++)
         {
-            float height = Mathf.InverseLerp(planetScript.minElevation, planetScript.maxElevation, e);
-            colors.Add(planetScript.gradient.Evaluate(height));
+            int normalTriangleIndex = i * 3;
+            vertexIndexA = triangles[normalTriangleIndex];
+            vertexIndexB = triangles[normalTriangleIndex + 1];
+            vertexIndexC = triangles[normalTriangleIndex + 2];
+
+            triangleNormal = GetSurfaceNormal(vertexIndexA, vertexIndexB, vertexIndexC);
+
+            normals[vertexIndexA] += triangleNormal;
+            normals[vertexIndexB] += triangleNormal;
+            normals[vertexIndexC] += triangleNormal;
+        }
+        for (int i = 0; i < normals.Length; i++)
+        {
+            normals[i].Normalize();
         }
 
         mesh.Clear();
         mesh.vertices = vertices.ToArray();//faceVertices.ToArray();
         mesh.triangles = triangles.ToArray();
         mesh.colors = colors.ToArray();
+        mesh.normals = normals;
         mesh.RecalculateNormals();
+    }
+
+    Vector3 GetSurfaceNormal(int indexA, int indexB, int indexC)
+    {
+        Vector3 pointA = vertices[indexA];
+        Vector3 pointB = vertices[indexB];
+        Vector3 pointC = vertices[indexC];
+
+        // Get an aproximation of the vertex normal using two other vertices that share the same triangle
+        Vector3 sideAB = pointB - pointA;
+        Vector3 sideAC = pointC - pointA;
+        return Vector3.Cross(sideAB, sideAC).normalized;
     }
 }

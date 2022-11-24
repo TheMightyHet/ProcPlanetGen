@@ -52,7 +52,7 @@ Material:
     m_Floats:
     - _Distance: 30
     - _Foam: 1
-    - _FoamCutoff: 1.15
+    - _FoamCutoff: 1.2
     - _FoamSpeed: 1
     - _QueueControl: 0
     - _QueueOffset: 0

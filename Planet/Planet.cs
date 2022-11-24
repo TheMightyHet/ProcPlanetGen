@@ -13,10 +13,16 @@ public class Planet : MonoBehaviour
     public Transform playerObj;
     [HideInInspector] public float playerDistance;
 
-    public NoiseFilter noiseFilter = new();
+    public float strength = .1f;
+    public int octaves = 10;
+    public float baseRoughness = 1f;
+    public float roughness = 2f;
+    public float persistance = .5f;
+    public Vector3 center = new Vector3(0, 0, 0);
 
-    public float[] distanceLOD; 
+    public NoiseFilter noiseFilter;
 
+    public float[] distanceLOD;
     public float minElevation = float.MaxValue;
     public float maxElevation = float.MinValue;
     public ColorSettings colorSettings;
@@ -53,12 +59,12 @@ public class Planet : MonoBehaviour
         colorGen.UpdateSettings(colorSettings);
         distanceLOD = new float[] {
             Mathf.Infinity,
-            planetRadius * 3f,
-            planetRadius * 1.2f,
-            planetRadius * .5f,
-            planetRadius * .21f,
-            planetRadius * .1f,
-            planetRadius * .04f
+            planetRadius * 10f,
+            planetRadius * 7f,
+            planetRadius * .4f,
+            planetRadius * .25f,
+            planetRadius * .18f,
+            planetRadius * .1f
         };
 
 
@@ -96,15 +102,24 @@ public class Planet : MonoBehaviour
 
     void GenerateMesh()
     {
+        minElevation = float.MaxValue;
+        maxElevation = float.MinValue;  
+        noiseFilter = new NoiseFilter(strength, octaves, baseRoughness, roughness, persistance, center);
+
         foreach (PlanetFace face in planetFaces)
         {
             face.CreateChunkMesh();
         }
         /*colorGen.UpdateElevation(minElevation, maxElevation);
         GenerateColors();*/
+        ColorGen();
     }
     void UpdateMesh()
     {
+        minElevation = float.MaxValue;
+        maxElevation = float.MinValue; 
+        noiseFilter = new NoiseFilter(strength, octaves, baseRoughness, roughness, persistance, center);
+
         foreach (PlanetFace face in planetFaces)
         {
             face.UpdateChunkMesh();
@@ -112,10 +127,28 @@ public class Planet : MonoBehaviour
         }
         /*colorGen.UpdateElevation(minElevation, maxElevation);
         GenerateColors();*/
+        ColorGen();
     }
 
     void GenerateColors()
     {
         colorGen.UpdateColors();
     }
+
+    void ColorGen()
+    {
+        foreach (PlanetFace face in planetFaces)
+        {
+            List<Color> colors = new();
+            foreach (var e in face.vertElevation)
+            {
+                float height = Mathf.InverseLerp(minElevation, maxElevation, e);
+                colors.Add(gradient.Evaluate(height));
+            }
+            face.mesh.colors = colors.ToArray();
+        }
+    }
+
+    private void OnDrawGizmos()
+    { }
 }

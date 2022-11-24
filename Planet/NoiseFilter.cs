@@ -2,17 +2,26 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// A lot of this code comes from Sebastian Lague, credit goes to him
 public class NoiseFilter
 {
     Noise noise = new Noise();
 
-    public float strength = .2f;
-    public int octaves = 10;
-    public float baseRoughness = 1;
-    public float roughness = 2f;
-    public float persistance = .5f;
-    public Vector3 center = new Vector3(0, 0, 0);
+    public float strength;
+    public int octaves;
+    public float baseRoughness;
+    public float roughness;
+    public float persistance;
+    public Vector3 center;
+
+    public NoiseFilter(float strength, int octaves, float baseRoughness, float roughness, float persistance, Vector3 center)
+    {
+        this.strength = strength;
+        this.octaves = octaves;
+        this.baseRoughness = baseRoughness;
+        this.roughness = roughness;
+        this.persistance = persistance;
+        this.center = center;
+    }
 
     public float Evaluate(Vector3 point)
     {
