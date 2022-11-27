@@ -4,14 +4,7 @@ using UnityEngine;
 
 public class Planet : MonoBehaviour
 {
-    public readonly float planetRadius = 1000;
-
-    [SerializeField,HideInInspector] 
-    MeshFilter[] meshFilters;
-    PlanetFace[] planetFaces;
-
-    public Transform playerObj;
-    [HideInInspector] public float playerDistance;
+    public readonly float planetRadius = 100;
 
     public float strength = .1f;
     public int octaves = 10;
@@ -20,13 +13,17 @@ public class Planet : MonoBehaviour
     public float persistance = .5f;
     public Vector3 center = new Vector3(0, 0, 0);
 
-    public NoiseFilter noiseFilter;
+    public Transform playerObj;
+    [HideInInspector] public float playerDistance;
 
+    public NoiseFilter noiseFilter;
     public float[] distanceLOD;
+    [HideInInspector] 
+    MeshFilter[] meshFilters;
+    PlanetFace[] planetFaces;
+
     public float minElevation = float.MaxValue;
     public float maxElevation = float.MinValue;
-    public ColorSettings colorSettings;
-    ColorGen colorGen = new();
     public Gradient gradient;
 
     private void Awake()
@@ -56,27 +53,22 @@ public class Planet : MonoBehaviour
 
     void Initialize()
     {
-        colorGen.UpdateSettings(colorSettings);
+        noiseFilter = new NoiseFilter(strength, octaves, baseRoughness, roughness, persistance, center);
         distanceLOD = new float[] {
             Mathf.Infinity,
             planetRadius * 10f,
-            planetRadius * 7f,
-            planetRadius * .4f,
-            planetRadius * .25f,
-            planetRadius * .18f,
-            planetRadius * .1f
+            planetRadius * 1.16f,
+            planetRadius * .62f,
+            planetRadius * .36f,
+            planetRadius * .22f,
+            planetRadius * .15f
         };
 
-
         if (meshFilters == null || meshFilters.Length == 0)
-        {
             meshFilters = new MeshFilter[6];
-        }
 
         planetFaces = new PlanetFace[6];
-
         Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.up, Vector3.down, Vector3.right, Vector3.left};
-
         string[] directionNames = { "Forward", "Back", "Up", "Down", "Right", "Left" };
 
         for (int i = 0; i < 6; i++)
@@ -93,7 +85,6 @@ public class Planet : MonoBehaviour
                 meshFilters[i] = meshObj.AddComponent<MeshFilter>();
                 meshFilters[i].sharedMesh = new Mesh();
             }
-            //meshFilters[i].GetComponent<MeshRenderer>().sharedMaterial = colorSettings.planetMaterial;
             meshFilters[i].GetComponent<MeshRenderer>().sharedMaterial = this.GetComponent<MeshRenderer>().material;
 
             planetFaces[i] = new PlanetFace(meshFilters[i].sharedMesh, directions[i], this, directionNames[i]);
@@ -104,35 +95,19 @@ public class Planet : MonoBehaviour
     {
         minElevation = float.MaxValue;
         maxElevation = float.MinValue;  
-        noiseFilter = new NoiseFilter(strength, octaves, baseRoughness, roughness, persistance, center);
 
         foreach (PlanetFace face in planetFaces)
-        {
             face.CreateChunkMesh();
-        }
-        /*colorGen.UpdateElevation(minElevation, maxElevation);
-        GenerateColors();*/
         ColorGen();
     }
     void UpdateMesh()
     {
         minElevation = float.MaxValue;
         maxElevation = float.MinValue; 
-        noiseFilter = new NoiseFilter(strength, octaves, baseRoughness, roughness, persistance, center);
 
         foreach (PlanetFace face in planetFaces)
-        {
             face.UpdateChunkMesh();
-            //face.CreateChunkMesh();
-        }
-        /*colorGen.UpdateElevation(minElevation, maxElevation);
-        GenerateColors();*/
         ColorGen();
-    }
-
-    void GenerateColors()
-    {
-        colorGen.UpdateColors();
     }
 
     void ColorGen()
@@ -148,7 +123,4 @@ public class Planet : MonoBehaviour
             face.mesh.colors = colors.ToArray();
         }
     }
-
-    private void OnDrawGizmos()
-    { }
 }

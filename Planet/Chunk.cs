@@ -11,30 +11,19 @@ public class Chunk
     public string path;
     public Planet planetScript;
     public PlanetFace planetFace;
-    public NoiseFilter noiseFilter;
-
-    public int chunkBaseResolution = ChunkTemplate.chunkResolution;
-
-    public Vector3 chunkPosition;
     public Chunk[] subChunks;
-
+    public Vector3 chunkPosition;
     public float chunkRadius;
     public int chunkLODLevel;
+    public int[] neighbouringChunks; // top, left, bot, right
 
     public (Vector3, Vector3) step;
-
     public Vector3[,] chunkVertices = new Vector3[ChunkTemplate.chunkResolution + 1, ChunkTemplate.chunkResolution + 1];
-
     public List<int> chunkMiddleTrianglesList = new();
-
     public List<int> chunkBorderTrianglesList = new();
-
-
     public List<int> chunkTriangles = new();
 
-    public int[] neighbours;
-
-    public Chunk(string path, Planet planetScript, PlanetFace planetFace, Chunk[] subChunks, Vector3 chunkPosition, float chunkRadius, int chunkLODLevel, int[] neighbours)
+    public Chunk(string path, Planet planetScript, PlanetFace planetFace, Chunk[] subChunks, Vector3 chunkPosition, float chunkRadius, int chunkLODLevel, int[] neighbouringChunks)
     {
         this.path = path;
         this.planetScript = planetScript;
@@ -43,57 +32,36 @@ public class Chunk
         this.chunkPosition = chunkPosition;
         this.chunkRadius = chunkRadius;
         this.chunkLODLevel = chunkLODLevel;
-        this.neighbours = neighbours;
+        this.neighbouringChunks = neighbouringChunks;
 
-        step = ((2f / (float)chunkBaseResolution) * chunkRadius * planetFace.axisA, (2f / (float)chunkBaseResolution) * chunkRadius * planetFace.axisB);
+        step = ((2f / (float)ChunkTemplate.chunkResolution) * chunkRadius * planetFace.axisA, (2f / (float)ChunkTemplate.chunkResolution) * chunkRadius * planetFace.axisB);
 
         Matrix4x4 transformMatrix;
-        Vector3 rotationMatrixAttrib = new Vector3(0, 0, 0);
-        Vector3 scaleMatrixAttrib = new Vector3(chunkRadius, chunkRadius, 1);
+        int templDir = planetFace.localUp != Vector3.forward ? 
+                       planetFace.localUp == Vector3.back ? 1 : 
+                       planetFace.localUp == Vector3.up ? 2 :
+                       planetFace.localUp == Vector3.down ? 3 :
+                       planetFace.localUp == Vector3.right ? 4 : 5 : 0;
+        Vector3 scale = templDir == 0 || templDir == 1 ? new Vector3(chunkRadius, chunkRadius, 1) :
+                        templDir == 2 || templDir == 3 ? new Vector3(chunkRadius, 1, chunkRadius) :
+                        new Vector3(1, chunkRadius, chunkRadius);
+        transformMatrix = Matrix4x4.TRS(chunkPosition, Quaternion.Euler(new Vector3(0, 0, 0)), scale);
 
-        if (planetFace.localUp == Vector3.forward)
+        for (int i = 0; i < ChunkTemplate.chunkResolution + 1; ++i)
         {
-            rotationMatrixAttrib = new Vector3(0, 0, 0);
-        }
-        else if (planetFace.localUp == Vector3.back)
-        {
-            rotationMatrixAttrib = new Vector3(0, 180, 180);
-        }
-        else if (planetFace.localUp == Vector3.right)
-        {
-            rotationMatrixAttrib = new Vector3(0, 90, 90);
-        }
-        else if (planetFace.localUp == Vector3.left)
-        {
-            rotationMatrixAttrib = new Vector3(0, 270, 90);
-        }
-        else if (planetFace.localUp == Vector3.up)
-        {
-            rotationMatrixAttrib = new Vector3(270, 0, 270);
-        }
-        else if (planetFace.localUp == Vector3.down)
-        {
-            rotationMatrixAttrib = new Vector3(90, 0, 90);
-        }
-
-        transformMatrix = Matrix4x4.TRS(chunkPosition, Quaternion.Euler(rotationMatrixAttrib), scaleMatrixAttrib);
-
-
-        for (int i = 0; i < chunkBaseResolution + 1; ++i)
-        {
-            for (int j = 0; j < chunkBaseResolution + 1; ++j)
+            for (int j = 0; j < ChunkTemplate.chunkResolution + 1; ++j)
             {
-                Vector3 pointOnSphere = transformMatrix.MultiplyPoint(ChunkTemplate.templateVertices[i, j]).normalized;
+                Vector3 pointOnSphere = transformMatrix.MultiplyPoint(ChunkTemplate.templateVertices[templDir][i, j]).normalized;
                 chunkVertices[i, j] = pointOnSphere;
             }
         }
     }
 
-    public void GenerateSubChunks()
+    public void GenerateSubChunks(Vector3 playerPos)
     {
         if (chunkLODLevel <= planetScript.distanceLOD.Length - 1 && chunkLODLevel >= 0)
         {
-            float distToPlayerObj = Vector3.Distance(chunkPosition.normalized * planetScript.planetRadius + planetScript.transform.position, planetScript.playerObj.position);
+            float distToPlayerObj = Vector3.Distance(chunkPosition.normalized * planetScript.planetRadius + planetScript.transform.position, playerPos);
 
             if (distToPlayerObj <= planetScript.distanceLOD[chunkLODLevel])
             {
@@ -111,17 +79,17 @@ public class Chunk
 
                 foreach (Chunk chunk in subChunks)
                 {
-                    chunk.GenerateSubChunks();
+                    chunk.GenerateSubChunks(playerPos);
                 }
             }
         }
     }
 
-    public void UpdateChunk()
+    public void UpdateChunk(Vector3 playerPos)
     {
         if (chunkLODLevel <= planetScript.distanceLOD.Length - 1)
         {
-            float distToPlayerObj = Vector3.Distance(chunkPosition.normalized * planetScript.planetRadius + planetScript.transform.position, planetScript.playerObj.position);
+            float distToPlayerObj = Vector3.Distance(chunkPosition.normalized * planetScript.planetRadius, playerPos);
 
             if (distToPlayerObj > planetScript.distanceLOD[chunkLODLevel])
             {
@@ -133,12 +101,12 @@ public class Chunk
                 {
                     foreach (Chunk chunk in subChunks)
                     {
-                        chunk.UpdateChunk();
+                        chunk.UpdateChunk(playerPos);
                     }
                 }
                 else
                 {
-                    GenerateSubChunks();
+                    GenerateSubChunks(playerPos);
                 }
             }
         }
@@ -160,18 +128,17 @@ public class Chunk
 
     void AddVertices()
     {
-        for (int i = 0; i < chunkBaseResolution + 1; i++)
+        for (int i = 0; i < ChunkTemplate.chunkResolution + 1; i++)
         {
-            for (int j = 0; j < chunkBaseResolution + 1; j++)
+            for (int j = 0; j < ChunkTemplate.chunkResolution + 1; j++)
             {
-                if (i != 0 && j != 0 && i != chunkBaseResolution && j != chunkBaseResolution)
+                if (i != 0 && j != 0 && i != ChunkTemplate.chunkResolution && j != ChunkTemplate.chunkResolution)
                 {
                     planetFace.faceVertices.Add(chunkVertices[i, j]);
                     planetFace.verticeSN.Add(chunkVertices[i, j], planetFace.hashCounter++);
                 }
                 else
                     CheckVertexInHashTable(chunkVertices[i, j]);
-
             }
         }
     }
@@ -179,7 +146,6 @@ public class Chunk
     void ClearTriangles()
     {
         chunkTriangles.Clear();
-
         chunkMiddleTrianglesList.Clear();
         chunkBorderTrianglesList.Clear();
     }
@@ -187,61 +153,42 @@ public class Chunk
     void CalculateChunkMiddleTriangles()
     {
         for (int i = 0; i < ChunkTemplate.templateMiddleTriangles.Length; ++i)
-        {
             chunkMiddleTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateMiddleTriangles[i].Item1, ChunkTemplate.templateMiddleTriangles[i].Item2]]);
-        }
     }
 
     void CalculateChunkBorderTriangles()
     {
         CalculateNeighbouringChunkLODs();
-
-        if (neighbours[0] == 0)
-            for (int i = 0; i < ChunkTemplate.templateTopTriangles.Length; ++i)
-            {
-                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateTopTriangles[i].Item1, ChunkTemplate.templateTopTriangles[i].Item2]]);
-            }
-        else
+        if (neighbouringChunks[0] == 1)
             for (int i = 0; i < ChunkTemplate.templateTopEdgeFanTriangles.Length; ++i)
-            {
                 chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateTopEdgeFanTriangles[i].Item1, ChunkTemplate.templateTopEdgeFanTriangles[i].Item2]]);
-            }
-
-
-        if (neighbours[2] == 0)
-            for (int i = 0; i < ChunkTemplate.templateBotTriangles.Length; ++i)
-            {
-                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateBotTriangles[i].Item1, ChunkTemplate.templateBotTriangles[i].Item2]]);
-            }
         else
+            for (int i = 0; i < ChunkTemplate.templateTopTriangles.Length; ++i)
+                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateTopTriangles[i].Item1, ChunkTemplate.templateTopTriangles[i].Item2]]);
+
+
+        if (neighbouringChunks[2] == 1)
             for (int i = 0; i < ChunkTemplate.templateBotEdgeFanTriangles.Length; ++i)
-            {
                 chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateBotEdgeFanTriangles[i].Item1, ChunkTemplate.templateBotEdgeFanTriangles[i].Item2]]);
-            }
-
-
-        if (neighbours[1] == 0)
-            for (int i = 0; i < ChunkTemplate.templateRightTriangles.Length; ++i)
-            {
-                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateRightTriangles[i].Item1, ChunkTemplate.templateRightTriangles[i].Item2]]);
-            }
         else
-            for (int i = 0; i < ChunkTemplate.templateRightEdgeFanTriangles.Length; ++i)
-            {
-                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateRightEdgeFanTriangles[i].Item1, ChunkTemplate.templateRightEdgeFanTriangles[i].Item2]]);
-            }
+            for (int i = 0; i < ChunkTemplate.templateBotTriangles.Length; ++i)
+                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateBotTriangles[i].Item1, ChunkTemplate.templateBotTriangles[i].Item2]]);
 
 
-        if (neighbours[3] == 0)
-            for (int i = 0; i < ChunkTemplate.templateLeftTriangles.Length; ++i)
-            {
-                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateLeftTriangles[i].Item1, ChunkTemplate.templateLeftTriangles[i].Item2]]);
-            }
-        else
+        if (neighbouringChunks[1] == 1)
             for (int i = 0; i < ChunkTemplate.templateLeftEdgeFanTriangles.Length; ++i)
-            {
                 chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateLeftEdgeFanTriangles[i].Item1, ChunkTemplate.templateLeftEdgeFanTriangles[i].Item2]]);
-            }
+        else
+            for (int i = 0; i < ChunkTemplate.templateLeftTriangles.Length; ++i)
+                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateLeftTriangles[i].Item1, ChunkTemplate.templateLeftTriangles[i].Item2]]);
+
+
+        if (neighbouringChunks[3] == 1)
+            for (int i = 0; i < ChunkTemplate.templateRightEdgeFanTriangles.Length; ++i)
+                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateRightEdgeFanTriangles[i].Item1, ChunkTemplate.templateRightEdgeFanTriangles[i].Item2]]);
+        else
+            for (int i = 0; i < ChunkTemplate.templateRightTriangles.Length; ++i)
+                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateRightTriangles[i].Item1, ChunkTemplate.templateRightTriangles[i].Item2]]);
     }
 
     void CheckVertexInHashTable(Vector3 vertex)
@@ -253,61 +200,45 @@ public class Chunk
         }
     }
 
-    public void GetSubChunks()
+    public void GetSubChunks(Vector3 playerPos)
     {
         if (subChunks.Length > 0)
-        {
             foreach (Chunk subChunk in subChunks)
-            {
-                subChunk.GetSubChunks();
-            }
-        }
+                subChunk.GetSubChunks(playerPos);
         else
-        {
-            if (Vector3.Angle(chunkPosition, planetScript.playerObj.position) < 90)
+            if (Vector3.Angle(chunkPosition, playerPos) < 90) 
                 planetFace.displayedChunk.Add(this);
-        }
     }
 
     public void CalculateNeighbouringChunkLODs()
     {
-        //Top, Left, Bot, Right
-        switch (path[^1]) // (corner)
+        if (path[^1] == '0')
         {
-            case '0':
-                {
-                    neighbours[0] = CheckNeighbourLOD(0);
-                    neighbours[1] = CheckNeighbourLOD(1);
-                    neighbours[2] = 0;
-                    neighbours[3] = 0;
-                    break;
-                }
-            case '1':
-                {
-                    neighbours[0] = CheckNeighbourLOD(0);
-                    neighbours[1] = 0;
-                    neighbours[2] = 0;
-                    neighbours[3] = CheckNeighbourLOD(3);
-                    break;
-                }
-            case '2':
-                {
-                    neighbours[0] = 0;
-                    neighbours[1] = CheckNeighbourLOD(1);
-                    neighbours[2] = CheckNeighbourLOD(2);
-                    neighbours[3] = 0;
-                    break;
-                }
-            case '3':
-                {
-                    neighbours[0] = 0;
-                    neighbours[1] = 0;
-                    neighbours[2] = CheckNeighbourLOD(2);
-                    neighbours[3] = CheckNeighbourLOD(3);
-
-                    break;
-                }
-            default: break;
+            neighbouringChunks[0] = CheckNeighbourLOD(0);
+            neighbouringChunks[1] = CheckNeighbourLOD(1);
+            neighbouringChunks[2] = 0;
+            neighbouringChunks[3] = 0;
+        }
+        if (path[^1] == '1')
+        {
+            neighbouringChunks[0] = CheckNeighbourLOD(0);
+            neighbouringChunks[1] = 0;
+            neighbouringChunks[2] = 0;
+            neighbouringChunks[3] = CheckNeighbourLOD(3);
+        }
+        if (path[^1] == '2')
+        {
+            neighbouringChunks[0] = 0;
+            neighbouringChunks[1] = CheckNeighbourLOD(1);
+            neighbouringChunks[2] = CheckNeighbourLOD(2);
+            neighbouringChunks[3] = 0;
+        }
+        if (path[^1] == '3')
+        {
+            neighbouringChunks[0] = 0;
+            neighbouringChunks[1] = 0;
+            neighbouringChunks[2] = CheckNeighbourLOD(2);
+            neighbouringChunks[3] = CheckNeighbourLOD(3);
         }
     }
 
@@ -330,7 +261,6 @@ public class Chunk
             else
                 break;
         }
-
         if (neighbour.chunkLODLevel < chunkLODLevel) return 1;
         return 0;
     }
@@ -364,24 +294,17 @@ public class Chunk
     {
         if ((dir % 2) == 1)
         {
-            if (pathPart == '0') return "1"; // topLeft  -> topRight
-            else
-            if (pathPart == '1') return "0"; // topRight -> topLeft
-            else
-            if (pathPart == '2') return "3"; // botLeft  -> botRight
-            else
-            if (pathPart == '3') return "2"; // botRight -> botLeft
+            if (pathPart == '0') return "1";
+            else if (pathPart == '1') return "0";
+            else if (pathPart == '2') return "3";
+            else if (pathPart == '3') return "2";
         }
-        else
-        if ((dir % 2) == 0)
+        else if ((dir % 2) == 0)
         {
-            if (pathPart == '0') return "2"; // topLeft -> botLeft
-            else
-            if (pathPart == '1') return "3"; // topRight -> botRight
-            else
-            if (pathPart == '2') return "0"; // botLeft -> topLeft
-            else
-            if (pathPart == '3') return "1"; // botRight -> topRight
+            if (pathPart == '0') return "2";
+            else if (pathPart == '1') return "3";
+            else if (pathPart == '2') return "0";
+            else if (pathPart == '3') return "1";
         }
         return "";
     }
@@ -390,33 +313,24 @@ public class Chunk
     {
         if (dir == 0)
         {
-            if (pathPart == '2' || pathPart == '3') // BotSide
-                return true;
-            else if (pathPart == '1' || pathPart == '4') // TopSide
-                return false;
+            if (pathPart == '2' || pathPart == '3') return true;
+            else if (pathPart == '1' || pathPart == '4') return false;
         }
         else if (dir == 1)
         {
-            if (pathPart == '1' || pathPart == '3') // RightSide
-                return true;
-            else if (pathPart == '0' || pathPart == '2') // LeftSide
-                return false;
+            if (pathPart == '1' || pathPart == '3') return true;
+            else if (pathPart == '0' || pathPart == '2') return false;
         }
         else if (dir == 2)
         {
-            if (pathPart == '0' || pathPart == '1') // TopSide
-                return true;
-            else if (pathPart == '2' || pathPart == '3') // BotSide
-                return false;
+            if (pathPart == '0' || pathPart == '1') return true;
+            else if (pathPart == '2' || pathPart == '3') return false;
         }
         else if (dir == 3)
         {
-            if (pathPart == '0' || pathPart == '2') // LeftSide
-                return true;
-            else if (pathPart == '1' || pathPart == '3') // RightSide
-                return false;
+            if (pathPart == '0' || pathPart == '2') return true;
+            else if (pathPart == '1' || pathPart == '3') return false;
         }
-
         return false;
     }
 }
