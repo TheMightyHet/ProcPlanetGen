@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 
 public class ChunkTemplate : MonoBehaviour
 {
-    public const int chunkResolution = 8;
+    public const int chunkResolution = 4;
 
     public Vector3[,] vertices;
     public static Vector3[][,] templateVertices = new Vector3[6][,];

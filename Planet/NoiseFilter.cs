@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class NoiseFilter
 {
-    Noise noise = new Noise();
+    Noise noise;
 
     public float strength;
     public int octaves;
@@ -15,6 +15,8 @@ public class NoiseFilter
 
     public NoiseFilter(float strength, int octaves, float baseRoughness, float roughness, float persistance, Vector3 center)
     {
+        noise = new();
+
         this.strength = strength;
         this.octaves = octaves;
         this.baseRoughness = baseRoughness;

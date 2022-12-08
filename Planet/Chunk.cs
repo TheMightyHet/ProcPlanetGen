@@ -11,7 +11,7 @@ public class Chunk
     public string path;
     public Planet planetScript;
     public PlanetFace planetFace;
-    public Chunk[] subChunks;
+    public Chunk[] childrenChunks;
     public Vector3 chunkPosition;
     public float chunkRadius;
     public int chunkLODLevel;
@@ -23,12 +23,12 @@ public class Chunk
     public List<int> chunkBorderTrianglesList = new();
     public List<int> chunkTriangles = new();
 
-    public Chunk(string path, Planet planetScript, PlanetFace planetFace, Chunk[] subChunks, Vector3 chunkPosition, float chunkRadius, int chunkLODLevel, int[] neighbouringChunks)
+    public Chunk(string path, Planet planetScript, PlanetFace planetFace, Chunk[] childrenChunks, Vector3 chunkPosition, float chunkRadius, int chunkLODLevel, int[] neighbouringChunks)
     {
         this.path = path;
         this.planetScript = planetScript;
         this.planetFace = planetFace;
-        this.subChunks = subChunks;
+        this.childrenChunks = childrenChunks;
         this.chunkPosition = chunkPosition;
         this.chunkRadius = chunkRadius;
         this.chunkLODLevel = chunkLODLevel;
@@ -57,29 +57,52 @@ public class Chunk
         }
     }
 
-    public void GenerateSubChunks(Vector3 playerPos)
+    public void GenerateAllChunks()
     {
         if (chunkLODLevel <= planetScript.distanceLOD.Length - 1 && chunkLODLevel >= 0)
         {
-            float distToPlayerObj = Vector3.Distance(chunkPosition.normalized * planetScript.planetRadius + planetScript.transform.position, playerPos);
+            childrenChunks = new Chunk[4];
+
+            Vector3 topLeft = chunkPosition + (.5f * chunkRadius * planetFace.axisA) - (.5f * chunkRadius * planetFace.axisB);
+            Vector3 topRight = chunkPosition + (.5f * chunkRadius * planetFace.axisA) + (.5f * chunkRadius * planetFace.axisB);
+            Vector3 botLeft = chunkPosition - (.5f * chunkRadius * planetFace.axisA) - (.5f * chunkRadius * planetFace.axisB);
+            Vector3 botRight = chunkPosition - (.5f * chunkRadius * planetFace.axisA) + (.5f * chunkRadius * planetFace.axisB);
+
+            childrenChunks[0] = new Chunk(path + "0", planetScript, planetFace, new Chunk[0], topLeft, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
+            childrenChunks[1] = new Chunk(path + "1", planetScript, planetFace, new Chunk[0], topRight, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
+            childrenChunks[2] = new Chunk(path + "2", planetScript, planetFace, new Chunk[0], botLeft, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
+            childrenChunks[3] = new Chunk(path + "3", planetScript, planetFace, new Chunk[0], botRight, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
+
+            foreach (Chunk chunk in childrenChunks)
+            {
+                chunk.GenerateAllChunks();
+            }
+        }
+    }
+
+    public void GenerateChildrenChunks(Vector3 playerPos)
+    {
+        if (chunkLODLevel <= planetScript.distanceLOD.Length - 1 && chunkLODLevel >= 0)
+        {
+            float distToPlayerObj = Vector3.Distance(chunkPosition.normalized * planetScript.planetRadius, playerPos);
 
             if (distToPlayerObj <= planetScript.distanceLOD[chunkLODLevel])
             {
-                subChunks = new Chunk[4];
+                childrenChunks = new Chunk[4];
 
                 Vector3 topLeft = chunkPosition + (.5f * chunkRadius * planetFace.axisA) - (.5f * chunkRadius * planetFace.axisB);
                 Vector3 topRight = chunkPosition + (.5f * chunkRadius * planetFace.axisA) + (.5f * chunkRadius * planetFace.axisB);
                 Vector3 botLeft = chunkPosition - (.5f * chunkRadius * planetFace.axisA) - (.5f * chunkRadius * planetFace.axisB);
                 Vector3 botRight = chunkPosition - (.5f * chunkRadius * planetFace.axisA) + (.5f * chunkRadius * planetFace.axisB);
 
-                subChunks[0] = new Chunk(path + "0", planetScript, planetFace, new Chunk[0], topLeft, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
-                subChunks[1] = new Chunk(path + "1", planetScript, planetFace, new Chunk[0], topRight, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
-                subChunks[2] = new Chunk(path + "2", planetScript, planetFace, new Chunk[0], botLeft, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
-                subChunks[3] = new Chunk(path + "3", planetScript, planetFace, new Chunk[0], botRight, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
+                childrenChunks[0] = new Chunk(path + "0", planetScript, planetFace, new Chunk[0], topLeft, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
+                childrenChunks[1] = new Chunk(path + "1", planetScript, planetFace, new Chunk[0], topRight, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
+                childrenChunks[2] = new Chunk(path + "2", planetScript, planetFace, new Chunk[0], botLeft, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
+                childrenChunks[3] = new Chunk(path + "3", planetScript, planetFace, new Chunk[0], botRight, chunkRadius * .5f, chunkLODLevel + 1, new int[4]);
 
-                foreach (Chunk chunk in subChunks)
+                foreach (Chunk chunk in childrenChunks)
                 {
-                    chunk.GenerateSubChunks(playerPos);
+                    chunk.GenerateChildrenChunks(playerPos);
                 }
             }
         }
@@ -93,32 +116,32 @@ public class Chunk
 
             if (distToPlayerObj > planetScript.distanceLOD[chunkLODLevel])
             {
-                subChunks = new Chunk[0];
+                childrenChunks = new Chunk[0];
             }
             else
             {
-                if (subChunks.Length > 0)
+                if (childrenChunks.Length > 0)
                 {
-                    foreach (Chunk chunk in subChunks)
+                    foreach (Chunk chunk in childrenChunks)
                     {
                         chunk.UpdateChunk(playerPos);
                     }
                 }
                 else
                 {
-                    GenerateSubChunks(playerPos);
+                    GenerateChildrenChunks(playerPos);
                 }
             }
         }
     }
 
-    internal List<int> GetChunkData()
+    internal List<int> GetChunkData(Hashtable verticeSN, bool shouldAddVertices)
     {
-        AddVertices();
+        if (shouldAddVertices) AddVertices();
         ClearTriangles();
 
-        CalculateChunkMiddleTriangles();
-        CalculateChunkBorderTriangles();
+        CalculateChunkMiddleTriangles(verticeSN);
+        CalculateChunkBorderTriangles(verticeSN);
 
         chunkTriangles.AddRange(chunkMiddleTrianglesList);
         chunkTriangles.AddRange(chunkBorderTrianglesList);
@@ -135,7 +158,7 @@ public class Chunk
                 if (i != 0 && j != 0 && i != ChunkTemplate.chunkResolution && j != ChunkTemplate.chunkResolution)
                 {
                     planetFace.faceVertices.Add(chunkVertices[i, j]);
-                    planetFace.verticeSN.Add(chunkVertices[i, j], planetFace.hashCounter++);
+                    planetFace.verticeSN.Add(chunkVertices[i, j], planetFace.verticeSN.Count);
                 }
                 else
                     CheckVertexInHashTable(chunkVertices[i, j]);
@@ -146,49 +169,50 @@ public class Chunk
     void ClearTriangles()
     {
         chunkTriangles.Clear();
-        chunkMiddleTrianglesList.Clear();
+        //chunkMiddleTrianglesList.Clear();
         chunkBorderTrianglesList.Clear();
     }
 
-    void CalculateChunkMiddleTriangles()
+    void CalculateChunkMiddleTriangles(Hashtable verticeSN)
     {
-        for (int i = 0; i < ChunkTemplate.templateMiddleTriangles.Length; ++i)
-            chunkMiddleTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateMiddleTriangles[i].Item1, ChunkTemplate.templateMiddleTriangles[i].Item2]]);
+        if (!chunkMiddleTrianglesList.Any())
+            for (int i = 0; i < ChunkTemplate.templateMiddleTriangles.Length; ++i)
+                chunkMiddleTrianglesList.Add((int)verticeSN[chunkVertices[ChunkTemplate.templateMiddleTriangles[i].Item1, ChunkTemplate.templateMiddleTriangles[i].Item2]]);
     }
 
-    void CalculateChunkBorderTriangles()
+    void CalculateChunkBorderTriangles(Hashtable verticeSN)
     {
         CalculateNeighbouringChunkLODs();
         if (neighbouringChunks[0] == 1)
             for (int i = 0; i < ChunkTemplate.templateTopEdgeFanTriangles.Length; ++i)
-                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateTopEdgeFanTriangles[i].Item1, ChunkTemplate.templateTopEdgeFanTriangles[i].Item2]]);
+                chunkBorderTrianglesList.Add((int)verticeSN[chunkVertices[ChunkTemplate.templateTopEdgeFanTriangles[i].Item1, ChunkTemplate.templateTopEdgeFanTriangles[i].Item2]]);
         else
             for (int i = 0; i < ChunkTemplate.templateTopTriangles.Length; ++i)
-                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateTopTriangles[i].Item1, ChunkTemplate.templateTopTriangles[i].Item2]]);
+                chunkBorderTrianglesList.Add((int)verticeSN[chunkVertices[ChunkTemplate.templateTopTriangles[i].Item1, ChunkTemplate.templateTopTriangles[i].Item2]]);
 
 
         if (neighbouringChunks[2] == 1)
             for (int i = 0; i < ChunkTemplate.templateBotEdgeFanTriangles.Length; ++i)
-                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateBotEdgeFanTriangles[i].Item1, ChunkTemplate.templateBotEdgeFanTriangles[i].Item2]]);
+                chunkBorderTrianglesList.Add((int)verticeSN[chunkVertices[ChunkTemplate.templateBotEdgeFanTriangles[i].Item1, ChunkTemplate.templateBotEdgeFanTriangles[i].Item2]]);
         else
             for (int i = 0; i < ChunkTemplate.templateBotTriangles.Length; ++i)
-                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateBotTriangles[i].Item1, ChunkTemplate.templateBotTriangles[i].Item2]]);
+                chunkBorderTrianglesList.Add((int)verticeSN[chunkVertices[ChunkTemplate.templateBotTriangles[i].Item1, ChunkTemplate.templateBotTriangles[i].Item2]]);
 
 
         if (neighbouringChunks[1] == 1)
             for (int i = 0; i < ChunkTemplate.templateLeftEdgeFanTriangles.Length; ++i)
-                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateLeftEdgeFanTriangles[i].Item1, ChunkTemplate.templateLeftEdgeFanTriangles[i].Item2]]);
+                chunkBorderTrianglesList.Add((int)verticeSN[chunkVertices[ChunkTemplate.templateLeftEdgeFanTriangles[i].Item1, ChunkTemplate.templateLeftEdgeFanTriangles[i].Item2]]);
         else
             for (int i = 0; i < ChunkTemplate.templateLeftTriangles.Length; ++i)
-                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateLeftTriangles[i].Item1, ChunkTemplate.templateLeftTriangles[i].Item2]]);
+                chunkBorderTrianglesList.Add((int)verticeSN[chunkVertices[ChunkTemplate.templateLeftTriangles[i].Item1, ChunkTemplate.templateLeftTriangles[i].Item2]]);
 
 
         if (neighbouringChunks[3] == 1)
             for (int i = 0; i < ChunkTemplate.templateRightEdgeFanTriangles.Length; ++i)
-                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateRightEdgeFanTriangles[i].Item1, ChunkTemplate.templateRightEdgeFanTriangles[i].Item2]]);
+                chunkBorderTrianglesList.Add((int)verticeSN[chunkVertices[ChunkTemplate.templateRightEdgeFanTriangles[i].Item1, ChunkTemplate.templateRightEdgeFanTriangles[i].Item2]]);
         else
             for (int i = 0; i < ChunkTemplate.templateRightTriangles.Length; ++i)
-                chunkBorderTrianglesList.Add((int)planetFace.verticeSN[chunkVertices[ChunkTemplate.templateRightTriangles[i].Item1, ChunkTemplate.templateRightTriangles[i].Item2]]);
+                chunkBorderTrianglesList.Add((int)verticeSN[chunkVertices[ChunkTemplate.templateRightTriangles[i].Item1, ChunkTemplate.templateRightTriangles[i].Item2]]);
     }
 
     void CheckVertexInHashTable(Vector3 vertex)
@@ -196,18 +220,21 @@ public class Chunk
         if (!planetFace.verticeSN.ContainsKey(vertex))
         {
             planetFace.faceVertices.Add(vertex);
-            planetFace.verticeSN.Add(vertex, planetFace.hashCounter++);
+            planetFace.verticeSN.Add(vertex, planetFace.verticeSN.Count);
         }
     }
 
-    public void GetSubChunks(Vector3 playerPos)
+    public void GetSubChunks(Vector3 playerPos, List<Chunk> visibleChunks, bool isGenerating)
     {
-        if (subChunks.Length > 0)
-            foreach (Chunk subChunk in subChunks)
-                subChunk.GetSubChunks(playerPos);
+        if (childrenChunks.Length > 0)
+            foreach (Chunk subChunk in childrenChunks)
+                subChunk.GetSubChunks(playerPos, visibleChunks, isGenerating);
         else
-            if (Vector3.Angle(chunkPosition, playerPos) < 90) 
-                planetFace.displayedChunk.Add(this);
+            if (isGenerating)
+                    visibleChunks.Add(this);
+            else
+                if (Vector3.Angle(chunkPosition, playerPos) < 90) 
+                    visibleChunks.Add(this);
     }
 
     public void CalculateNeighbouringChunkLODs()
@@ -246,16 +273,17 @@ public class Chunk
     {
         string neighbourPath = InvertPath(dir);
         if (neighbourPath == "") return 0;
+
         Chunk neighbour = planetFace.baseChunk;
 
         while (neighbourPath.Length > 0)
         {
-            if (neighbour.subChunks.Length > 0)
+            if (neighbour.childrenChunks.Length > 0)
             {
-                if (neighbourPath[0] == '0') neighbour = neighbour.subChunks[0];
-                else if (neighbourPath[0] == '1') neighbour = neighbour.subChunks[1];
-                else if (neighbourPath[0] == '2') neighbour = neighbour.subChunks[2];
-                else if (neighbourPath[0] == '3') neighbour = neighbour.subChunks[3];
+                if (neighbourPath[0] == '0') neighbour = neighbour.childrenChunks[0];
+                else if (neighbourPath[0] == '1') neighbour = neighbour.childrenChunks[1];
+                else if (neighbourPath[0] == '2') neighbour = neighbour.childrenChunks[2];
+                else if (neighbourPath[0] == '3') neighbour = neighbour.childrenChunks[3];
                 neighbourPath = neighbourPath.Remove(0, 1);
             }
             else
@@ -268,7 +296,6 @@ public class Chunk
     public string InvertPath(int dir)
     {
         string chunkPath = path;
-        chunkPath = chunkPath.Remove(0, 1); // Remove baseChunk
         string neighbourPath = "";
 
         while (chunkPath.Length > 0)
@@ -279,7 +306,7 @@ public class Chunk
                 chunkPath = chunkPath.Remove(chunkPath.Length - 1);
                 if (chunkPath.Length == 0) return "";
             }
-            else if (HasSiblingTowards(dir, chunkPath[^1]))
+            else
             {
                 neighbourPath = neighbourPath.Insert(0, InvertDirection(dir, chunkPath[^1]));
                 chunkPath = chunkPath.Remove(chunkPath.Length - 1);

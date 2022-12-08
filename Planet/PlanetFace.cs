@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class PlanetFace
 {
@@ -19,16 +20,19 @@ public class PlanetFace
 
     public List<Vector3> faceVertices = new();
     public Hashtable verticeSN = new();
-    public int hashCounter = 0;
 
     public Chunk baseChunk;
-    public List<Chunk> displayedChunk = new();
+    public List<Chunk> visibleChunks = new();
 
     public List<Vector3> vertices = new();
-    public List<float> vertElevation = new();
+    public Vector3[] normals;
+    public List<float> verticesElevation = new();
     public List<int> triangles = new();
     public List<Color> colors = new();
 
+
+    public List<float> verticesHeat = new();
+    public List<float> verticesRain = new();
 
     public PlanetFace(Mesh mesh, Vector3 localUp, Planet planetScript, string dir)
     {
@@ -44,68 +48,176 @@ public class PlanetFace
 
     public void CreateChunkMesh()
     {
-        Vector3 playerPos = planetScript.playerObj.transform.position;
-        displayedChunk = new List<Chunk>();
+        Vector3 playerPosition = planetScript.playerObj.transform.position;
+        visibleChunks = new List<Chunk>();
 
-        baseChunk = new Chunk("0", planetScript, this, null, localUp, 1, 0, null);
-        baseChunk.GenerateSubChunks(playerPos);
-        baseChunk.GetSubChunks(playerPos);
+        baseChunk = new Chunk("", planetScript, this, null, localUp, 1, 0, null);
+        baseChunk.GenerateAllChunks();
+        baseChunk.GetSubChunks(playerPosition, visibleChunks, true);
         
-        foreach (Chunk chunkPart in displayedChunk)
-            triangles.AddRange(chunkPart.GetChunkData());
+        foreach (Chunk chunkPart in visibleChunks)
+            triangles.AddRange(chunkPart.GetChunkData(verticeSN, true));
 
         for (int i = 0; i < faceVertices.Count; i++)
         {
-            float elevation = (1 + planetScript.noiseFilter.Evaluate(faceVertices[i])) * planetScript.planetRadius;
-            vertices.Add(elevation * faceVertices[i]);
-            vertElevation.Add(elevation);
+            float vertexElevationValue = 1 + planetScript.noiseFilter.Evaluate(faceVertices[i]);
+            vertices.Add(vertexElevationValue * planetScript.planetRadius * faceVertices[i]);
+            verticesElevation.Add(vertexElevationValue);
 
-            if (elevation > planetScript.maxElevation) { planetScript.maxElevation = elevation; }
-            if (elevation < planetScript.minElevation) { planetScript.minElevation = elevation; }
+            if (vertexElevationValue > planetScript.maxElevation) { planetScript.maxElevation = vertexElevationValue; }
+            if (vertexElevationValue < planetScript.minElevation) { planetScript.minElevation = vertexElevationValue; }
+
+            float heatHeightFalloff = vertexElevationValue > 0 ? 1f - vertexElevationValue : 0;
+            float heatFalloff = (1f - Math.Abs(faceVertices[i].y)) - heatHeightFalloff;
+
+            float vertexHeatValue = 1 + planetScript.heatFilter.Evaluate(faceVertices[i]);
+            float vertexRainValue = 1 + planetScript.rainFilter.Evaluate(faceVertices[i]);
+
+
+            /*float vertexHeatValue = (((1 + planetScript.heatFilter.Evaluate(faceVertices[i])) * 1000) * (Mathf.Epsilon - Mathf.Exp(Mathf.Abs(faceVertices[i].y))) / vertexElevationValue) -
+                                    (((1 + planetScript.heatFilter.Evaluate(faceVertices[i])) * 1000 - vertexElevationValue) * (Mathf.Epsilon - Mathf.Exp(Mathf.Abs(faceVertices[i].y))));
+            float vertexRainValue = vertexElevationValue / (1 + planetScript.rainFilter.Evaluate(faceVertices[i]) * (Mathf.Epsilon - Mathf.Exp(Mathf.Abs(Mathf.Abs(faceVertices[i].y) - .5f))));*/
+
+
+            //float vertexHeatValue = ((1 + planetScript.heatFilter.Evaluate(faceVertices[i])) * 1000 - vertexElevationValue) * (Mathf.Epsilon - Mathf.Exp(Mathf.Abs(faceVertices[i].y)));
+            //float vertexRainValue = vertexElevationValue / (1 + planetScript.rainFilter.Evaluate(faceVertices[i]) * (Mathf.Exp(1) - Mathf.Exp(Mathf.Abs(Mathf.Abs(faceVertices[i].y) - .5f))));
+
+            verticesHeat.Add(vertexHeatValue);
+            verticesRain.Add(vertexRainValue);
+
+            if (vertexHeatValue > planetScript.maxHeat) { planetScript.maxHeat = vertexHeatValue; }
+            if (vertexHeatValue < planetScript.minHeat) { planetScript.minHeat = vertexHeatValue; }
+
+            if (vertexRainValue > planetScript.maxRain) { planetScript.maxRain = vertexRainValue; }
+            if (vertexRainValue < planetScript.minRain) { planetScript.minRain = vertexRainValue; }
+        }
+
+        Vector3[] normals = new Vector3[vertices.Count];
+
+        int triangleCount = triangles.Count / 3;
+
+        int vertexIndexA;
+        int vertexIndexB;
+        int vertexIndexC;
+
+        Vector3 triangleNormal;
+
+        for (int i = 0; i < triangleCount; i++)
+        {
+            int normalTriangleIndex = i * 3;
+            vertexIndexA = triangles[normalTriangleIndex];
+            vertexIndexB = triangles[normalTriangleIndex + 1];
+            vertexIndexC = triangles[normalTriangleIndex + 2];
+
+            triangleNormal = SurfaceNormalFromIndices(vertices, vertexIndexA, vertexIndexB, vertexIndexC);
+            normals[vertexIndexA] += triangleNormal;
+            normals[vertexIndexB] += triangleNormal;
+            normals[vertexIndexC] += triangleNormal;
+        }
+
+        for (int i = 0; i < normals.Length; i++)
+        {
+            normals[i].Normalize();
         }
 
         mesh.Clear();
         mesh.vertices = vertices.ToArray();
         mesh.triangles = triangles.ToArray();
         mesh.colors = colors.ToArray();
-        mesh.RecalculateNormals();
+        mesh.normals = normals;
     }
 
-    public async void UpdateChunkMesh()
+    public IEnumerator UpdateChunkMesh()
     {
-        Vector3 playerPos = planetScript.playerObj.transform.position;
-        vertices.Clear();
-        triangles.Clear();
+        Vector3 playerPosition = planetScript.playerObj.transform.position;
+        /*vertices.Clear();
         colors.Clear();
-        vertElevation.Clear();
+        verticesElevation.Clear();
         faceVertices.Clear();
         verticeSN.Clear();
+        triangles.Clear();*/
         triangles.Clear();
-        hashCounter = 0;
-        displayedChunk = new List<Chunk>();
 
-        baseChunk.UpdateChunk(playerPos);
-        baseChunk.GetSubChunks(playerPos);
-
-        foreach (Chunk chunkPart in displayedChunk)
-            triangles.AddRange(chunkPart.GetChunkData());
-
-        for (int i = 0; i < faceVertices.Count; i++)
+        Thread thread = new Thread(() => triangles = Calculate(baseChunk, playerPosition, verticeSN));
+        thread.Start();
+        while (thread.IsAlive)
         {
-            float elevation = (1 + planetScript.noiseFilter.Evaluate(faceVertices[i])) * planetScript.planetRadius;
-            vertices.Add(elevation * faceVertices[i]);
-            vertElevation.Add(elevation);
+            yield return null;
+        }
+        thread.Join();
 
-            if (elevation > planetScript.maxElevation) { planetScript.maxElevation = elevation; }
-            if (elevation < planetScript.minElevation) { planetScript.minElevation = elevation; }
+        /*mesh.Clear();
+        mesh.vertices = vertices.ToArray();*/
+        mesh.triangles = triangles.ToArray();
+        /*mesh.colors = colors.ToArray();
+        mesh.normals = normals;*/
+    }
+
+
+    private Vector3 SurfaceNormalFromIndices(List<Vector3> vertices, int indexA, int indexB, int indexC)
+    {
+        Vector3 pointA = vertices[indexA];
+        Vector3 pointB = vertices[indexB];
+        Vector3 pointC = vertices[indexC];
+
+        Vector3 sideAB = pointB - pointA;
+        Vector3 sideAC = pointC - pointA;
+        return Vector3.Cross(sideAB, sideAC).normalized;
+    }
+
+    List<int> Calculate(Chunk baseChunk, Vector3 playerPosition, Hashtable verticeSN)
+    {
+        List<Chunk> visibleChunks = new List<Chunk>();
+        List<int> triangles = new();
+
+        baseChunk.UpdateChunk(playerPosition);
+        baseChunk.GetSubChunks(playerPosition, visibleChunks, false);
+
+        foreach (Chunk chunkPart in visibleChunks)
+        {
+            triangles.AddRange(chunkPart.GetChunkData(verticeSN, false));
         }
 
-        await Task.Yield();
+        /*for (int i = 0; i < faceVertices.Count; i++)
+        {
+            float vertexElevationValue = (1 + planetScript.noiseFilter.Evaluate(faceVertices[i])) * planetScript.planetRadius;
+            vertices.Add(vertexElevationValue * faceVertices[i]);
+            verticesElevation.Add(vertexElevationValue);
+        }
 
-        mesh.Clear();
-        mesh.vertices = vertices.ToArray();
-        mesh.triangles = triangles.ToArray();
-        mesh.colors = colors.ToArray();
-        mesh.RecalculateNormals();
+        Vector3[] normals = new Vector3[vertices.Count];
+
+        int triangleCount = triangles.Count / 3;
+
+        int vertexIndexA;
+        int vertexIndexB;
+        int vertexIndexC;
+
+        Vector3 triangleNormal;
+
+        for (int i = 0; i < triangleCount; i++)
+        {
+            int normalTriangleIndex = i * 3;
+            vertexIndexA = triangles[normalTriangleIndex];
+            vertexIndexB = triangles[normalTriangleIndex + 1];
+            vertexIndexC = triangles[normalTriangleIndex + 2];
+
+            triangleNormal = SurfaceNormalFromIndices(vertices ,vertexIndexA, vertexIndexB, vertexIndexC);
+            normals[vertexIndexA] += triangleNormal;
+            normals[vertexIndexB] += triangleNormal;
+            normals[vertexIndexC] += triangleNormal;
+        }
+
+        for (int i = 0; i < normals.Length; i++)
+        {
+            normals[i].Normalize();
+        }
+
+        foreach (var e in verticesElevation)
+        {
+            float height = Mathf.InverseLerp(planetScript.minElevation, planetScript.maxElevation, e);
+            colors.Add(planetScript.gradient.Evaluate(height));
+        }*/
+        return triangles;
     }
 }
