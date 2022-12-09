@@ -68,20 +68,20 @@ public class TimeController : MonoBehaviour
             double percentage = timeSinceSunSet.TotalMinutes / sunSetToSunRiseDuration.TotalMinutes;
             sunRotation = Mathf.Lerp(180, 360, (float)percentage);
         }
-        sun.transform.rotation = Quaternion.AngleAxis(sunRotation, Vector3.right);
-        moon.transform.rotation = Quaternion.AngleAxis(sunRotation + 180, Vector3.right);
+        sun.transform.rotation = Quaternion.AngleAxis(sunRotation, Vector3.up);
+        moon.transform.rotation = Quaternion.AngleAxis(sunRotation + 180, Vector3.up);
     }
 
     private void UpdateLightSettings()
     {
-        float dotProduct = Vector3.Dot(sun.transform.forward, Vector3.down);
+        float dotProduct = Vector3.Dot(sun.transform.forward, Vector3.forward);
         sun.intensity = Mathf.Lerp(0, maxSunLightIntensity, animationCurve.Evaluate(dotProduct));
         moon.intensity = Mathf.Lerp(maxMoonLightIntensity, 0, animationCurve.Evaluate(dotProduct));
 
         RenderSettings.ambientLight = Color.Lerp(ambiantLightNight, ambiantLightDay, animationCurve.Evaluate(dotProduct));
 
 
-        float dotProductPlayer = Vector3.Dot(sun.transform.forward, camera.transform.up);
+        float dotProductPlayer = Vector3.Dot(sun.transform.forward, camera.transform.parent.transform.up);
         camera.backgroundColor = Color.Lerp(skyBoxColorDay, skyBoxColorNight, animationCurve.Evaluate(dotProductPlayer));
     }
 

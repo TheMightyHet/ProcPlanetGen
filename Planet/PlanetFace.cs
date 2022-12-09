@@ -85,11 +85,11 @@ public class PlanetFace
             verticesHeat.Add(vertexHeatValue);
             verticesRain.Add(vertexRainValue);
 
-            if (vertexHeatValue > planetScript.maxHeat) { planetScript.maxHeat = vertexHeatValue; }
-            if (vertexHeatValue < planetScript.minHeat) { planetScript.minHeat = vertexHeatValue; }
+            if (vertexHeatValue > planetScript.maxHeat && vertexElevationValue > 0) { planetScript.maxHeat = vertexHeatValue; }
+            if (vertexHeatValue < planetScript.minHeat && vertexElevationValue > 0) { planetScript.minHeat = vertexHeatValue; }
 
-            if (vertexRainValue > planetScript.maxRain) { planetScript.maxRain = vertexRainValue; }
-            if (vertexRainValue < planetScript.minRain) { planetScript.minRain = vertexRainValue; }
+            if (vertexRainValue > planetScript.maxRain && vertexElevationValue > 0) { planetScript.maxRain = vertexRainValue; }
+            if (vertexRainValue < planetScript.minRain && vertexElevationValue > 0) { planetScript.minRain = vertexRainValue; }
         }
 
         Vector3[] normals = new Vector3[vertices.Count];

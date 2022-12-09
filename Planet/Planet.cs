@@ -70,16 +70,16 @@ public class Planet : MonoBehaviour
         distanceLOD = new float[] {
             Mathf.Infinity,
             planetRadius * 10f,
-            /*planetRadius * 1.16f,
+            planetRadius * 1.16f,
             planetRadius * .62f,
             planetRadius * .36f,
             planetRadius * .22f,
-            planetRadius * .15f*/
-            planetRadius * 2f,
+            planetRadius * .15f
+            /*planetRadius * 2f,
             planetRadius * .82f,
             planetRadius * .54f,
             planetRadius * .4f,
-            planetRadius * .3f
+            planetRadius * .3f*/
         };
 
         if (meshFilters == null || meshFilters.Length == 0)

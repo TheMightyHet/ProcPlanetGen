@@ -52,7 +52,7 @@ public class WaterBody : MonoBehaviour
 
     void CalculateVerticesTrianglesAndUVs(Vector3 localUp)
     {
-        int chunkResolution = 128;
+        int chunkResolution = 64;
 
         Vector3 axisA = new Vector3(localUp.y, localUp.z, localUp.x);
         Vector3 axisB = Vector3.Cross(localUp, axisA);

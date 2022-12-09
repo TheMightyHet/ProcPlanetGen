@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-214908800615796062
+--- !u!114 &-7641435740013692611
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}
@@ -20,16 +20,16 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: WaterMat
-  m_Shader: {fileID: -6465566751694194690, guid: 8200961a063c9e941b6e4c5a0088eb3c, type: 3}
+  m_Name: SunMaterial
+  m_Shader: {fileID: -6465566751694194690, guid: 8e9a04a4fef2d8f45874c6634b7e26ac, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
   m_InvalidKeywords: []
-  m_LightmapFlags: 1
-  m_EnableInstancingVariants: 1
+  m_LightmapFlags: 2
+  m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 3000
+  m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
@@ -50,18 +50,12 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Distance: 20
-    - _Foam: 0.3
-    - _FoamCutoff: 1.2
-    - _FoamSpeed: 0.5
+    - _CellSpeed: 10
+    - _Density: 10
     - _QueueControl: 0
     - _QueueOffset: 0
-    - _RefractionSpeed: 0.03
-    - _RefractionStrength: 0.3
+    - _SolarFlare: 2
     m_Colors:
-    - _BottomColor: {r: 0, g: 0.10553245, b: 0.2264151, a: 0.9019608}
-    - _FoamColor: {r: 1, g: 1, b: 1, a: 1}
-    - _FoamScale: {r: 25000, g: 25000, b: 0, a: 0}
-    - _RefractionScale: {r: 100, g: 100, b: 0, a: 0}
-    - _SurfaceColor: {r: 0, g: 0.4659128, b: 0.6901961, a: 0.4}
+    - _BaseColor: {r: 14.910238, g: 11.098355, b: 0.63298154, a: 0}
+    - _CellColor: {r: 1.207843, g: 0.3481368, b: 0.007843141, a: 0}
   m_BuildTextureStacks: []
