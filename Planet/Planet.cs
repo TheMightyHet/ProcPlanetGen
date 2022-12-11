@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Jobs;
 using UnityEngine;
+using UnityEngine.PlayerLoop;
 
 public class Planet : MonoBehaviour
 {
@@ -34,6 +35,9 @@ public class Planet : MonoBehaviour
     public float maxElevation = float.MinValue;
     public Gradient gradient;
 
+    [SerializeField] private GameObject[] vegetationPrefabs;
+    Hashtable vegetation = new();
+
     public bool[] faceUpdated = new bool[] { false, false, false, false, false, false };
     public int faceUpdateIndexer = 0;
 
@@ -50,18 +54,32 @@ public class Planet : MonoBehaviour
     }
 
     float elapsedTime;
+    float elapsedTimeVegetation;
     readonly float timeLimit = 3f;
+    readonly float timeLimitVegetation = 1f;
     private void Update()
     {
         playerPosition = playerObj.transform.position;
-        playerDistance = Vector3.Distance(transform.position, playerObj.transform.position); 
-        
+        playerDistance = Vector3.Distance(transform.position, playerObj.transform.position);
+
+        elapsedTimeVegetation += Time.deltaTime;
         elapsedTime += Time.deltaTime;
         if (elapsedTime >= timeLimit)
         {
             elapsedTime = 0;
             UpdateMesh();
+            GenerateVegetation();
         }
+
+        if (elapsedTimeVegetation >= timeLimitVegetation)
+        {
+            elapsedTimeVegetation = 0;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        DestroyVegetation();
     }
 
     void Initialize()
@@ -121,7 +139,8 @@ public class Planet : MonoBehaviour
             face.CreateChunkMesh();
             meshColliders[meshColliderInd++].sharedMesh = face.mesh;
         }
-        ColorGen();
+        GenerateColors();
+        GenerateVegetation();
     }
     void UpdateMesh()
     {
@@ -129,7 +148,7 @@ public class Planet : MonoBehaviour
             StartCoroutine(face.UpdateChunkMesh());
     }
 
-    void ColorGen()
+    void GenerateColors()
     {
         foreach (PlanetFace face in planetFaces)
         {
@@ -142,6 +161,45 @@ public class Planet : MonoBehaviour
             }
             face.mesh.colors = colors.ToArray();
             face.colors = colors;
+        }
+    }
+
+    void GenerateVegetation()
+    {
+        DestroyVegetation();
+        foreach (PlanetFace face in planetFaces)
+        {
+            int vegetationCounter = 0;
+            for (int i = 0; i < face.vertices.Count(); ++i) 
+            {
+                if (Vector3.Distance(playerPosition, face.vertices[i]) < 100f)
+                    if (!vegetation.ContainsKey(face.vertices[i]) && face.verticesElevation[i] > 1.0005f)
+                    {
+                        GameObject plant = Instantiate(vegetationPrefabs[UnityEngine.Random.Range(0, vegetationPrefabs.Length - 1)], transform);
+                        plant.name = "Plant_" + vegetationCounter++;
+                        plant.transform.position = face.vertices[i] - face.vertices[i].normalized;
+                        plant.transform.up = face.faceVertices[i].normalized;
+                        plant.transform.localScale = Vector3.one * UnityEngine.Random.Range(.75f, 1.25f);
+                        vegetation.Add(face.vertices[i], plant);
+                    }
+            }
+        }
+    }
+
+    void DestroyVegetation()
+    {
+        List<Vector3> toBeDestroyed = new List<Vector3>();
+        foreach (DictionaryEntry plant in vegetation)
+        {
+            if (Vector3.Distance(playerPosition, (Vector3)plant.Key) > 100f)
+            {
+                toBeDestroyed.Add((Vector3)plant.Key);
+            }
+        }
+        foreach (var key in toBeDestroyed)
+        {
+            Destroy((GameObject)vegetation[key]);
+            vegetation.Remove(key);
         }
     }
 }

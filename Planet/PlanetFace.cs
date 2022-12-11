@@ -67,29 +67,20 @@ public class PlanetFace
             if (vertexElevationValue > planetScript.maxElevation) { planetScript.maxElevation = vertexElevationValue; }
             if (vertexElevationValue < planetScript.minElevation) { planetScript.minElevation = vertexElevationValue; }
 
-            float heatHeightFalloff = vertexElevationValue > 0 ? 1f - vertexElevationValue : 0;
-            float heatFalloff = (1f - Math.Abs(faceVertices[i].y)) - heatHeightFalloff;
+            float heatHeightFalloff = vertexElevationValue >= 1 ? 1f - vertexElevationValue : 0;
+            float heatFalloff = vertexElevationValue >= 1 ? (1f - Math.Abs(faceVertices[i].y)) - heatHeightFalloff : 0;
 
             float vertexHeatValue = 1 + planetScript.heatFilter.Evaluate(faceVertices[i]);
             float vertexRainValue = 1 + planetScript.rainFilter.Evaluate(faceVertices[i]);
 
-
-            /*float vertexHeatValue = (((1 + planetScript.heatFilter.Evaluate(faceVertices[i])) * 1000) * (Mathf.Epsilon - Mathf.Exp(Mathf.Abs(faceVertices[i].y))) / vertexElevationValue) -
-                                    (((1 + planetScript.heatFilter.Evaluate(faceVertices[i])) * 1000 - vertexElevationValue) * (Mathf.Epsilon - Mathf.Exp(Mathf.Abs(faceVertices[i].y))));
-            float vertexRainValue = vertexElevationValue / (1 + planetScript.rainFilter.Evaluate(faceVertices[i]) * (Mathf.Epsilon - Mathf.Exp(Mathf.Abs(Mathf.Abs(faceVertices[i].y) - .5f))));*/
-
-
-            //float vertexHeatValue = ((1 + planetScript.heatFilter.Evaluate(faceVertices[i])) * 1000 - vertexElevationValue) * (Mathf.Epsilon - Mathf.Exp(Mathf.Abs(faceVertices[i].y)));
-            //float vertexRainValue = vertexElevationValue / (1 + planetScript.rainFilter.Evaluate(faceVertices[i]) * (Mathf.Exp(1) - Mathf.Exp(Mathf.Abs(Mathf.Abs(faceVertices[i].y) - .5f))));
-
             verticesHeat.Add(vertexHeatValue);
             verticesRain.Add(vertexRainValue);
 
-            if (vertexHeatValue > planetScript.maxHeat && vertexElevationValue > 0) { planetScript.maxHeat = vertexHeatValue; }
-            if (vertexHeatValue < planetScript.minHeat && vertexElevationValue > 0) { planetScript.minHeat = vertexHeatValue; }
+            if (vertexHeatValue > planetScript.maxHeat && vertexElevationValue >= 1) { planetScript.maxHeat = vertexHeatValue; }
+            if (vertexHeatValue < planetScript.minHeat && vertexElevationValue >= 1) { planetScript.minHeat = vertexHeatValue; }
 
-            if (vertexRainValue > planetScript.maxRain && vertexElevationValue > 0) { planetScript.maxRain = vertexRainValue; }
-            if (vertexRainValue < planetScript.minRain && vertexElevationValue > 0) { planetScript.minRain = vertexRainValue; }
+            if (vertexRainValue > planetScript.maxRain && vertexElevationValue >= 1) { planetScript.maxRain = vertexRainValue; }
+            if (vertexRainValue < planetScript.minRain && vertexElevationValue >= 1) { planetScript.minRain = vertexRainValue; }
         }
 
         Vector3[] normals = new Vector3[vertices.Count];
